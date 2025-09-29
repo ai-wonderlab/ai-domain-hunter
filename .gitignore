@@ -1,0 +1,58 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# API Keys and configs
+config.yaml
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Logs
+logs/
+*.log
+
+# Results and outputs
+results/
+debug/
+data/
+*.csv
+*.json
+
+# Cache
+.cache/
+searched_domains_cache*.txt
+
+# Research documents (large/sensitive)
+merged_output.txt
+researches/
+*.pdf
+*.docx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Legacy/old files
+legacy/
+COMPLETE_SYSTEM*
+ENHANCED_FEATURES*
+concatenate_research*
