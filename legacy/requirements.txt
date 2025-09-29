@@ -1,0 +1,84 @@
+# Multi-AI Domain Hunter Requirements
+# Python 3.8+ required
+
+# ============================================
+# AI Provider Libraries
+# ============================================
+# OpenAI (GPT models)
+openai>=1.0.0
+
+# Anthropic (Claude models)
+anthropic>=0.18.0
+
+# Google Gemini
+google-generativeai>=0.3.0  # Old library (still works)
+google-genai>=0.1.0  # New official library (recommended)
+
+# ============================================
+# Domain Checking & Network
+# ============================================
+# WHOIS lookups
+python-whois>=0.8.0
+
+# DNS resolution
+dnspython>=2.4.0
+
+# Async HTTP client
+aiohttp>=3.9.0
+
+# Sync HTTP requests
+requests>=2.31.0
+
+# Web scraping
+beautifulsoup4>=4.12.0
+
+# ============================================
+# Data Processing & Analysis
+# ============================================
+# DataFrame operations
+pandas>=2.0.0
+
+# Numerical computations
+numpy>=1.24.0
+
+# ============================================
+# Natural Language Processing
+# ============================================
+# Word lists and linguistic analysis
+nltk>=3.8.0
+
+# ============================================
+# Utilities
+# ============================================
+# Environment variable management
+python-dotenv>=1.0.0
+
+# ============================================
+# Optional but Recommended
+# ============================================
+# Rate limiting (if you want to add rate limit decorators)
+ratelimit>=2.2.1
+
+# Async utilities
+asyncio-throttle>=1.0.2
+
+# Progress bars (for better UX)
+tqdm>=4.66.0
+
+# Colorful terminal output
+colorama>=0.4.6
+rich>=13.0.0
+
+# ============================================
+# Development Dependencies (optional)
+# ============================================
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+
+# Code formatting
+black>=23.0.0
+flake8>=6.1.0
+
+# Type checking
+mypy>=1.5.0

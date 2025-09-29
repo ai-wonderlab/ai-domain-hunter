@@ -34,8 +34,6 @@ data/
 searched_domains_cache*.txt
 
 # Research documents (large/sensitive)
-merged_output.txt
-researches/
 *.pdf
 *.docx
 
@@ -52,7 +50,6 @@ researches/
 *.ipynb
 
 # Legacy/old files
-legacy/
 COMPLETE_SYSTEM*
 ENHANCED_FEATURES*
 concatenate_research*
