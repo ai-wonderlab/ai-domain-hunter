@@ -71,7 +71,7 @@ dist/
 *.egg-info/
 
 # Photos
-*.png
-*.jpg
-*.jpeg
-*.svg
+web_interface/public/assets/logo/png/*.png
+web_interface/public/assets/logo/jpg/*.jpg
+web_interface/public/assets/logo/jpeg/*.jpeg
+web_interface/public/assets/logo/svg/*.svg
