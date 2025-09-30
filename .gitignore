@@ -3,10 +3,6 @@
 .env.local
 .env.*.local
 
-# API Keys and configs
-config.yaml
-*.key
-
 # Python
 __pycache__/
 *.py[cod]
@@ -22,22 +18,28 @@ ENV/
 logs/
 *.log
 
-# Results and outputs
-results/
-debug/
-data/
-*.csv
-*.json
-
-# Cache
+# Cache and temporary files
 .cache/
+*.cache
+gemini_cache.txt
 searched_domains_cache*.txt
 
-# Research documents (large/sensitive)
-merged_output.txt
+# Debug and output directories
+debug/
+debug_output/
+results/
+data/
+
+# Research files (if sensitive)
 researches/
 *.pdf
 *.docx
+
+# Legacy/old files
+legacy/
+COMPLETE_SYSTEM*
+ENHANCED_FEATURES*
+concatenate_research*
 
 # IDE
 .vscode/
@@ -45,14 +47,31 @@ researches/
 *.swp
 *.swo
 *~
+
+# OS files
 .DS_Store
+Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
 
-# Legacy/old files
-legacy/
-COMPLETE_SYSTEM*
-ENHANCED_FEATURES*
-concatenate_research*
+# Test files
+test_*.py
+*_test.py
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Photos
+*.png
+*.jpg
+*.jpeg
+*.svg

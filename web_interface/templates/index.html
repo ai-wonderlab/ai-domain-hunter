@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Domain Finder</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Animated Liquid Background -->
+    <div class="liquid-bg">
+        <div class="gradient-1"></div>
+        <div class="gradient-2"></div>
+        <div class="gradient-3"></div>
+    </div>
+    
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+        </div>
+    </button>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <img id="logo" class="logo-img" src="/logo/light" alt="AI Domain Finder">
+            <h1>Domain Finder</h1>
+            <p class="subtitle">AI-powered discovery system</p>
+        </div>
+        
+        <!-- Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="tab active" data-mode="classic">Classic Hunt</button>
+            <button class="tab" data-mode="business">Business Idea</button>
+        </div>
+        
+        <!-- Classic Mode -->
+        <div id="classic-mode" class="mode-content">
+            <div class="input-group">
+                <label for="domain-count">Number of Domains</label>
+                <input type="number" id="domain-count" value="50" min="10" max="500">
+            </div>
+            
+            <div class="input-group">
+                <label for="strategy">Generation Strategy</label>
+                <select id="strategy">
+                    <option value="hybrid">Hybrid (Recommended)</option>
+                    <option value="emergent">Emergent AI</option>
+                    <option value="basic">Basic</option>
+                </select>
+            </div>
+            
+            <div class="input-group">
+                <label for="check-method">Check Method</label>
+                <select id="check-method">
+                    <option value="hybrid">Hybrid (API + Smart Scraping)</option>
+                    <option value="smart">Smart (Adaptive)</option>
+                    <option value="dns">DNS Only (Fast)</option>
+                    <option value="robust">Robust (All Sources)</option>
+                </select>
+            </div>
+            
+            <button class="action-btn" id="start-hunt">Start Hunting</button>
+        </div>
+        
+        <!-- Business Mode -->
+        <div id="business-mode" class="mode-content hidden">
+            <div class="input-group">
+                <label for="idea">Describe Your Business Idea</label>
+                <textarea id="idea" rows="12" placeholder="I want to create an AI-powered tool that helps restaurants optimize their menu pricing based on local competition and ingredient costs..."></textarea>
+            </div>
+            <button class="action-btn" id="find-domains">Find Perfect Domains</button>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loading" class="loading hidden">
+            <div class="loader"></div>
+            <p id="loading-text">Processing...</p>
+        </div>
+        
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="results hidden">
+        <h2 id="results-title">Results</h2>
+        <div id="domains-list"></div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="{{ url_for('static', filename='liquid-bg.js') }}"></script>
+</body>
+</html>
