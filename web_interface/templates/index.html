@@ -35,6 +35,7 @@
         <div class="mode-tabs">
             <button class="tab active" data-mode="classic">Classic Hunt</button>
             <button class="tab" data-mode="business">Business Idea</button>
+            <button class="tab" data-mode="analytics">Analytics</button>
         </div>
         
         <!-- Classic Mode -->
@@ -46,21 +47,25 @@
             
             <div class="input-group">
                 <label for="strategy">Generation Strategy</label>
-                <select id="strategy">
-                    <option value="hybrid">Hybrid (Recommended)</option>
-                    <option value="emergent">Emergent AI</option>
-                    <option value="basic">Basic</option>
-                </select>
+                <div class="select-wrapper">
+                    <select id="strategy">
+                        <option value="hybrid">Hybrid (Recommended)</option>
+                        <option value="emergent">Emergent AI</option>
+                        <option value="basic">Basic</option>
+                    </select>
+                </div>
             </div>
             
             <div class="input-group">
                 <label for="check-method">Check Method</label>
-                <select id="check-method">
-                    <option value="hybrid">Hybrid (API + Smart Scraping)</option>
-                    <option value="smart">Smart (Adaptive)</option>
-                    <option value="dns">DNS Only (Fast)</option>
-                    <option value="robust">Robust (All Sources)</option>
-                </select>
+                <div class="select-wrapper">
+                    <select id="check-method">
+                        <option value="hybrid">Hybrid (API + Smart Scraping)</option>
+                        <option value="smart">Smart (Adaptive)</option>
+                        <option value="dns">DNS Only (Fast)</option>
+                        <option value="robust">Robust (All Sources)</option>
+                    </select>
+                </div>
             </div>
             
             <button class="action-btn" id="start-hunt">Start Hunting</button>
@@ -75,9 +80,46 @@
             <button class="action-btn" id="find-domains">Find Perfect Domains</button>
         </div>
         
+        <!-- Analytics Mode -->
+        <div id="analytics-mode" class="mode-content hidden">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-hunts">0</div>
+                    <div class="stat-label">Total Hunts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="domains-checked">0</div>
+                    <div class="stat-label">Domains Checked</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="success-rate">0%</div>
+                    <div class="stat-label">Available Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avg-score">0.0</div>
+                    <div class="stat-label">Avg Score</div>
+                </div>
+            </div>
+            
+            <div class="analytics-section">
+                <h3>Top Available Domains</h3>
+                <div id="top-domains-list" class="domain-list-compact"></div>
+            </div>
+            
+            <div class="analytics-section">
+                <h3>Recent Activity</h3>
+                <div id="recent-activity" class="activity-timeline"></div>
+            </div>
+            <button class="action-btn danger-btn" id="clear-history">
+                Clear All History
+            </button>
+        </div>
+        
         <!-- Loading State -->
         <div id="loading" class="loading hidden">
-            <div class="loader"></div>
+            <div class="loader">
+                <img class="loader-logo" src="/logo/light" alt="Loading" id="loader-logo">
+            </div>
             <p id="loading-text">Processing...</p>
         </div>
         
@@ -88,7 +130,34 @@
         <h2 id="results-title">Results</h2>
         <div id="domains-list"></div>
     </div>
+
+    <div id="search-details" class="search-details hidden">
+    <button class="details-close">×</button>
+    <h2 id="details-title">Search Details</h2>
+    <div class="details-stats">
+        <div class="detail-stat">
+            <span class="detail-label">Type:</span>
+            <span id="detail-type"></span>
+        </div>
+        <div class="detail-stat">
+            <span class="detail-label">Date:</span>
+            <span id="detail-date"></span>
+        </div>
+        <div class="detail-stat">
+            <span class="detail-label">Total Domains:</span>
+            <span id="detail-total"></span>
+        </div>
+        <div class="detail-stat">
+            <span class="detail-label">Available:</span>
+            <span id="detail-available"></span>
+        </div>
+    </div>
+    <h3>Domains Found:</h3>
+    <div id="detail-domains-list"></div>
+    </div>
     
+    <!-- Add before your script.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="{{ url_for('static', filename='liquid-bg.js') }}"></script>
