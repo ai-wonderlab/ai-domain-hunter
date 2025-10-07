@@ -75,3 +75,22 @@ web_interface/public/assets/logo/png/*.png
 web_interface/public/assets/logo/jpg/*.jpg
 web_interface/public/assets/logo/jpeg/*.jpeg
 web_interface/public/assets/logo/svg/*.svg
+
+# Brand Package Backend - Proprietary Research
+brand-package/backend/research/documents/*.txt
+brand-package/backend/research/cache/*.json
+
+# Brand Package Backend - Logs
+brand-package/backend/logs/*.log
+brand-package/backend/logs/*.txt
+
+# Brand Package Backend - Test outputs
+brand-package/backend/test_outputs/
+brand-package/backend/.pytest_cache/
+brand-package/backend/.coverage
+brand-package/backend/htmlcov/
+
+# Brand Package Backend - Environment
+brand-package/backend/.env
+brand-package/backend/.env.local
+brand-package/backend/.env.*.local
