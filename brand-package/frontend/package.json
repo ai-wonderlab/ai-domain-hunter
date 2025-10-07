@@ -1,0 +1,23 @@
+{
+  "name": "brand-package-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "motion": "^10.16.2",
+    "three": "^0.128.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/three": "^0.128.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.8"
+  }
+}

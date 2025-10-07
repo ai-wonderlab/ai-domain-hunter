@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brand Studio - Generator</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="stylesheet" href="/src/styles/style.css">
+    <link rel="stylesheet" href="/src/styles/studio.css">
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+        </div>
+    </button>
+    
+    <!-- Studio Container - Three Panels -->
+    <div class="studio-wrapper">
+        <!-- Left Panel - Input -->
+        <div class="panel glass-panel input-panel">
+            <div class="panel-header">
+                <img class="logo-img-small" id="studio-logo" src="/logo-light.svg" alt="Logo">
+                <div id="auth-status" class="auth-status">
+                    <span>Not signed in</span>
+                </div>
+            </div>
+            
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step active" data-step="1">
+                    <span class="step-number">1</span>
+                    <span class="step-label">Describe</span>
+                </div>
+                <div class="step" data-step="2">
+                    <span class="step-number">2</span>
+                    <span class="step-label">Style</span>
+                </div>
+                <div class="step" data-step="3">
+                    <span class="step-number">3</span>
+                    <span class="step-label">Generate</span>
+                </div>
+            </div>
+            
+            <!-- Step 1: Description -->
+            <div class="step-content" data-step="1">
+                <div class="input-group">
+                    <label>Business Description</label>
+                    <textarea 
+                        id="description" 
+                        class="glass-input"
+                        placeholder="Describe your business idea..."
+                        rows="8"
+                    ></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label>Industry (Optional)</label>
+                    <div class="select-wrapper">
+                        <select id="industry" class="glass-input">
+                            <option value="">Select industry</option>
+                            <option value="technology">Technology</option>
+                            <option value="retail">Retail</option>
+                            <option value="food">Food & Beverage</option>
+                            <option value="health">Health & Wellness</option>
+                            <option value="education">Education</option>
+                            <option value="finance">Finance</option>
+                            <option value="entertainment">Entertainment</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button class="action-btn next-step">Continue</button>
+            </div>
+            
+            <!-- Step 2: Style Selection -->
+            <div class="step-content hidden" data-step="2">
+                <h3>Choose Your Style</h3>
+                
+                <div class="style-grid">
+                    <div class="style-card glass-card" data-style="modern">
+                        <div class="style-icon">□</div>
+                        <span>Modern</span>
+                    </div>
+                    <div class="style-card glass-card" data-style="bold">
+                        <div class="style-icon">■</div>
+                        <span>Bold</span>
+                    </div>
+                    <div class="style-card glass-card" data-style="playful">
+                        <div class="style-icon">◯</div>
+                        <span>Playful</span>
+                    </div>
+                    <div class="style-card glass-card" data-style="elegant">
+                        <div class="style-icon">◇</div>
+                        <span>Elegant</span>
+                    </div>
+                </div>
+                
+                <h3>Color Theme</h3>
+                
+                <div class="theme-grid">
+                    <div class="color-theme" data-theme="earth">
+                        <div class="theme-colors">
+                            <div style="background: #8B7355"></div>
+                            <div style="background: #E8D5C4"></div>
+                            <div style="background: #2F4F4F"></div>
+                        </div>
+                        <span>Earth Tones</span>
+                    </div>
+                    <div class="color-theme" data-theme="ocean">
+                        <div class="theme-colors">
+                            <div style="background: #1E90FF"></div>
+                            <div style="background: #4682B4"></div>
+                            <div style="background: #00CED1"></div>
+                        </div>
+                        <span>Ocean Blues</span>
+                    </div>
+                    <div class="color-theme" data-theme="sunset">
+                        <div class="theme-colors">
+                            <div style="background: #FF6B6B"></div>
+                            <div style="background: #FFB347"></div>
+                            <div style="background: #FFA07A"></div>
+                        </div>
+                        <span>Sunset Warm</span>
+                    </div>
+                    <div class="color-theme" data-theme="tech">
+                        <div class="theme-colors">
+                            <div style="background: #667eea"></div>
+                            <div style="background: #764ba2"></div>
+                            <div style="background: #8B5CF6"></div>
+                        </div>
+                        <span>Tech Modern</span>
+                    </div>
+                </div>
+                
+                <div class="step-nav">
+                    <button class="action-btn secondary-btn prev-step">Back</button>
+                    <button class="action-btn next-step">Continue</button>
+                </div>
+            </div>
+            
+            <!-- Step 3: Generation Options -->
+            <div class="step-content hidden" data-step="3">
+                <h3>What to Generate</h3>
+                
+                <div class="options-list">
+                    <label class="option-item">
+                        <input type="checkbox" checked data-service="name">
+                        <div class="option-content">
+                            <span class="option-icon">📝</span>
+                            <div>
+                                <strong>Business Names</strong>
+                                <small>10 variations</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="option-item">
+                        <input type="checkbox" checked data-service="logo">
+                        <div class="option-content">
+                            <span class="option-icon">🎨</span>
+                            <div>
+                                <strong>Logo Concepts</strong>
+                                <small>3 designs</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="option-item">
+                        <input type="checkbox" checked data-service="color">
+                        <div class="option-content">
+                            <span class="option-icon">🎯</span>
+                            <div>
+                                <strong>Color Palettes</strong>
+                                <small>3 schemes</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="option-item">
+                        <input type="checkbox" checked data-service="tagline">
+                        <div class="option-content">
+                            <span class="option-icon">💬</span>
+                            <div>
+                                <strong>Taglines</strong>
+                                <small>5 options</small>
+                            </div>
+                        </div>
+                    </label>
+                    
+                    <label class="option-item">
+                        <input type="checkbox" checked data-service="domain">
+                        <div class="option-content">
+                            <span class="option-icon">🌐</span>
+                            <div>
+                                <strong>Domain Check</strong>
+                                <small>Availability</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                
+                <div class="step-nav">
+                    <button class="action-btn secondary-btn prev-step">Back</button>
+                    <button class="action-btn" id="generate-btn">
+                        Generate My Brand
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Center Panel - Live Preview -->
+        <div class="panel glass-panel preview-panel">
+            <div class="preview-header">
+                <h2>Live Preview</h2>
+                <div class="generation-status">
+                    <span class="status-dot"></span>
+                    <span id="status-text">Ready</span>
+                </div>
+            </div>
+            
+            <div class="preview-content">
+                <div class="preview-placeholder">
+                    <div class="placeholder-icon">✨</div>
+                    <p>Your brand package will appear here</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - History/Saved -->
+        <div class="panel glass-panel history-panel">
+            <h3>Your Brands</h3>
+            <div class="saved-items">
+                <p class="empty-state">No saved brands yet</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading hidden">
+        <div class="loader">
+            <img class="loader-logo" src="/logo-light.svg" alt="Loading" id="loader-logo">
+        </div>
+        <p id="loading-text">Generating your brand...</p>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/scripts/liquid-bg.ts"></script>
+</body>
+</html>

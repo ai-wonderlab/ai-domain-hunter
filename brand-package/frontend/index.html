@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brand Package Generator</title>
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="stylesheet" href="/src/styles/style.css">
+</head>
+<body>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+        </div>
+    </button>
+    
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <img id="logo" class="logo-img" src="/logo-light.svg" alt="Brand Package Generator">
+            <h1>Brand Package Generator</h1>
+            <p class="subtitle">AI-POWERED BRAND IDENTITY</p>
+        </div>
+        
+        <!-- Quick Start Input -->
+        <div class="hero-input">
+            <label for="quick-description">DESCRIBE YOUR BUSINESS</label>
+            <textarea 
+                id="quick-description" 
+                placeholder="We're building an eco-friendly coffee subscription service that delivers fresh beans from sustainable farms..."
+                rows="6"
+            ></textarea>
+        </div>
+        
+        <!-- Feature Pills -->
+        <div class="feature-pills">
+            <span class="pill">✨ 5 AI Models</span>
+            <span class="pill">🎨 Custom Logos</span>
+            <span class="pill">🎯 Smart Colors</span>
+            <span class="pill">📝 Taglines</span>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="action-btn" id="try-free">
+                Try Free Sample
+            </button>
+            <button class="action-btn secondary-btn" id="go-studio">
+                Full Studio Experience
+            </button>
+        </div>
+        
+        <!-- Auth Note -->
+        <p class="auth-note">2 free generations included</p>
+    </div>
+    
+    <!-- Loading State -->
+    <div id="loading" class="loading hidden">
+        <div class="loader">
+          <img class="loader-logo" src="/logo-light.svg" alt="Loading" id="loader-logo">
+        </div>
+        <p id="loading-text">Generating your brand identity...</p>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="module" src="/src/main.ts"></script>
+    <script type="module" src="/src/scripts/liquid-bg.ts"></script>
+</body>
+</html>
