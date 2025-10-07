@@ -21,7 +21,7 @@ textarea {
     --bg-secondary: #f0f0f0;
     --text-primary: #000000;
     --text-secondary: #666666;
-    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-bg: rgba(255, 255, 255, 0.85);
     --glass-border: rgba(255, 255, 255, 0.4);
     --card-bg: rgba(255, 255, 255, 0.9);
     --border-color: rgba(0, 0, 0, 0.1);
@@ -34,7 +34,7 @@ textarea {
     --bg-secondary: #1a1a1a;
     --text-primary: #ffffff;
     --text-secondary: #999999;
-    --glass-bg: rgba(20, 20, 20, 0.25);
+    --glass-bg: rgba(20, 20, 20, 0.85);
     --glass-border: rgba(255, 255, 255, 0.1);
     --card-bg: rgba(255, 255, 255, 0.05);
     --border-color: rgba(255, 255, 255, 0.1);

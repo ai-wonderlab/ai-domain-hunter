@@ -1,0 +1,10 @@
+{
+  "pattern_type": "logo",
+  "content": "# LOGO GENERATION PATTERNS\n# Loaded: 2025-10-07T12:14:52.233234\n# Type: logo\n# ---\n\n\n\n\n## LOGO GENERATION GUIDELINES\n\n### Visual Hierarchy:\n- Primary element should be instantly recognizable\n- Secondary elements support, not compete\n- Negative space is powerful\n\n### Scalability Requirements:\n- Must work at 16px favicon size\n- Must work at billboard size\n- Test at 32px, 64px, 128px, 512px\n\n### Modern Logo Trends:\n- Geometric simplification\n- Gradient meshes (used sparingly)\n- Variable width strokes\n- Asymmetric balance\n",
+  "metadata": {
+    "created_at": "2025-10-07T12:14:52.233239",
+    "content_hash": "d0bf0141aedab9d263d40c93d32c7f8e",
+    "size": 524,
+    "ttl_seconds": 604800
+  }
+}

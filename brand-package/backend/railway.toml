@@ -1,0 +1,33 @@
+# Railway deployment configuration
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r requirements.txt"
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "backend"
+source = "backend"
+
+[services.backend]
+buildCommand = "pip install -r requirements.txt"
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+
+# Environment variables (set in Railway dashboard)
+# - APP_ENV
+# - DATABASE_URL
+# - SUPABASE_URL
+# - SUPABASE_ANON_KEY
+# - TEXT_API_KEY
+# - IMAGE_APIS
+# - JWT_SECRET_KEY
+
+# Networking
+[networking]
+# Railway handles this automatically

@@ -1,0 +1,10 @@
+{
+  "pattern_type": "color",
+  "content": "# COLOR GENERATION PATTERNS\n# Loaded: 2025-10-07T12:14:52.233539\n# Type: color\n# ---\n\n\n\n\n## COLOR PSYCHOLOGY & ACCESSIBILITY\n\n### Industry Standards:\n- FinTech: Blue (#0066CC), Green (#00AA44)\n- Healthcare: Teal (#17A2B8), Green (#28A745)\n- Education: Blue (#4A90E2), Orange (#FF6B35)\n- Gaming: Purple (#8B5CF6), Neon (#39FF14)\n\n### Accessibility Requirements:\n- WCAG AA: 4.5:1 contrast ratio for normal text\n- WCAG AAA: 7:1 contrast ratio for enhanced accessibility\n- Test with color blindness simulators\n\n### Emotional Associations:\n- Trust: Blue tones\n- Growth: Green tones\n- Energy: Orange/Red tones\n- Luxury: Purple/Gold tones\n- Innovation: Purple/Teal tones\n",
+  "metadata": {
+    "created_at": "2025-10-07T12:14:52.233543",
+    "content_hash": "e37528345696aed29835b7e371acf1d5",
+    "size": 664,
+    "ttl_seconds": 604800
+  }
+}

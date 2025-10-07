@@ -1,0 +1,342 @@
+"""
+Generation API Routes
+"""
+from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Dict, Any
+
+from api.schemas.request_schemas import (
+    GenerateNamesRequest,
+    CheckDomainsRequest,
+    GenerateLogosRequest,
+    GenerateColorsRequest,
+    GenerateTaglinesRequest,
+    GeneratePackageRequest,
+    RegenerateRequest
+)
+from api.schemas.response_schemas import (
+    GenerateNamesResponse,
+    CheckDomainsResponse,
+    GenerateLogosResponse,
+    GenerateColorsResponse,
+    GenerateTaglinesResponse,
+    GeneratePackageResponse
+)
+from api.dependencies import get_current_user, check_rate_limit
+from services.name_service import NameService
+from services.domain_service import DomainService
+from services.logo_service import LogoService
+from services.color_service import ColorService
+from services.tagline_service import TaglineService
+from services.package_service import PackageService
+from core.exceptions import (
+    GenerationError,
+    RateLimitExceeded,
+    ValidationError
+)
+import logging
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+
+@router.post("/names", response_model=GenerateNamesResponse)
+async def generate_names(
+    request: GenerateNamesRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> GenerateNamesResponse:
+    """Generate business names"""
+    try:
+        service = NameService()
+        result = await service.generate(
+            description=request.description,
+            user_id=user_id,
+            industry=request.industry,
+            style=request.style,
+            keywords=request.keywords,
+            count=request.count
+        )
+        
+        return GenerateNamesResponse(
+            success=True,
+            names=result['names'],
+            generation_id=result['generation_id'],
+            count=result['count']
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except GenerationError as e:
+        logger.error(f"Name generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate names"
+        )
+
+
+@router.post("/domains", response_model=CheckDomainsResponse)
+async def check_domains(
+    request: CheckDomainsRequest,
+    user_id: str = Depends(get_current_user)
+) -> CheckDomainsResponse:
+    """Check domain availability"""
+    try:
+        service = DomainService()
+        result = await service.check_domains(
+            domains=request.domains,
+            user_id=user_id
+        )
+        
+        return CheckDomainsResponse(
+            success=True,
+            results=result['results'],
+            generation_id=result['generation_id'],
+            total_checked=result['total_checked'],
+            available_count=result['available_count']
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Domain check failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check domains"
+        )
+
+
+@router.post("/logos", response_model=GenerateLogosResponse)
+async def generate_logos(
+    request: GenerateLogosRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> GenerateLogosResponse:
+    """Generate logo concepts"""
+    try:
+        service = LogoService()
+        result = await service.generate(
+            description=request.description,
+            user_id=user_id,
+            business_name=request.business_name,
+            style=request.style,
+            colors=request.colors,
+            industry=request.industry,
+            count=request.count
+        )
+        
+        return GenerateLogosResponse(
+            success=True,
+            logos=result['logos'],
+            generation_id=result['generation_id'],
+            business_name=result['business_name'],
+            count=result['count']
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except GenerationError as e:
+        logger.error(f"Logo generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate logos"
+        )
+
+
+@router.post("/colors", response_model=GenerateColorsResponse)
+async def generate_colors(
+    request: GenerateColorsRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> GenerateColorsResponse:
+    """Generate color palettes"""
+    try:
+        service = ColorService()
+        result = await service.generate(
+            description=request.description,
+            user_id=user_id,
+            business_name=request.business_name,
+            industry=request.industry,
+            theme=request.theme,
+            logo_colors=request.logo_colors,
+            count=request.count
+        )
+        
+        return GenerateColorsResponse(
+            success=True,
+            palettes=result['palettes'],
+            generation_id=result['generation_id'],
+            count=result['count']
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except GenerationError as e:
+        logger.error(f"Color generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate color palettes"
+        )
+
+
+@router.post("/taglines", response_model=GenerateTaglinesResponse)
+async def generate_taglines(
+    request: GenerateTaglinesRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> GenerateTaglinesResponse:
+    """Generate taglines"""
+    try:
+        service = TaglineService()
+        result = await service.generate(
+            description=request.description,
+            user_id=user_id,
+            business_name=request.business_name,
+            tone=request.tone,
+            industry=request.industry,
+            target_audience=request.target_audience,
+            keywords=request.keywords,
+            count=request.count
+        )
+        
+        return GenerateTaglinesResponse(
+            success=True,
+            taglines=result['taglines'],
+            generation_id=result['generation_id'],
+            business_name=result['business_name'],
+            count=result['count']
+        )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except GenerationError as e:
+        logger.error(f"Tagline generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate taglines"
+        )
+
+
+@router.post("/package", response_model=GeneratePackageResponse)
+async def generate_package(
+    request: GeneratePackageRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> GeneratePackageResponse:
+    """Generate complete brand package"""
+    try:
+        service = PackageService()
+        result = await service.generate(
+            description=request.description,
+            user_id=user_id,
+            business_name=request.business_name,
+            industry=request.industry,
+            style_preferences=request.style_preferences,
+            include_services=request.include_services
+        )
+        
+        return GeneratePackageResponse(
+            success=True,
+            project_id=result['project_id'],
+            generation_id=result['generation_id'],
+            business_name=result['business_name'],
+            names=result.get('names'),
+            domains=result.get('domains'),
+            logos=result.get('logos'),
+            color_palettes=result.get('color_palettes'),
+            taglines=result.get('taglines'),
+            summary=result['summary'],
+            errors=result.get('errors', []),
+            total_cost=result['total_cost'],
+            created_at=result['created_at']
+        )
+        
+    except RateLimitExceeded as e:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "error": "rate_limit_exceeded",
+                "message": str(e)
+            }
+        )
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except GenerationError as e:
+        logger.error(f"Package generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to generate package"
+        )
+
+
+@router.post("/regenerate/{component}")
+async def regenerate_component(
+    component: str,
+    request: RegenerateRequest,
+    user_id: str = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """Regenerate a specific component with feedback"""
+    
+    valid_components = ['name', 'logo', 'color', 'tagline', 'package']
+    if component not in valid_components:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid component. Must be one of: {valid_components}"
+        )
+    
+    try:
+        # Get appropriate service
+        services = {
+            'name': NameService(),
+            'logo': LogoService(),
+            'color': ColorService(),
+            'tagline': TaglineService(),
+            'package': PackageService()
+        }
+        
+        service = services[component]
+        
+        # Regenerate
+        if component == 'package':
+            result = await service.regenerate(
+                generation_id=request.generation_id,
+                feedback=request.feedback,
+                user_id=user_id,
+                service_to_regenerate=request.service_to_regenerate
+            )
+        else:
+            result = await service.regenerate(
+                generation_id=request.generation_id,
+                feedback=request.feedback,
+                user_id=user_id
+            )
+        
+        return {
+            "success": True,
+            "component": component,
+            "result": result
+        }
+        
+    except Exception as e:
+        logger.error(f"Regeneration failed for {component}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate {component}"
+        )
