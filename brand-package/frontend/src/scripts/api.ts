@@ -119,7 +119,8 @@ class API {
   async generatePackage(
     data: GeneratePackageRequest
   ): Promise<GeneratePackageResponse> {
-    return this.request<GeneratePackageResponse>('/generation/package', {
+    return this.request<GeneratePackageResponse>('/generate/package', {
+      //                                            ^^^^^^^^^ REMOVED "ation"
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -129,7 +130,7 @@ class API {
     description: string,
     industry?: string
   ): Promise<any> {
-    return this.request('/generation/names', {
+    return this.request('/generate/names', {
       method: 'POST',
       body: JSON.stringify({ description, industry })
     });
@@ -140,7 +141,7 @@ class API {
     description: string,
     style?: string
   ): Promise<any> {
-    return this.request('/generation/logos', {
+    return this.request('/generate/logos', {
       method: 'POST',
       body: JSON.stringify({ 
         business_name: businessName,
@@ -155,7 +156,7 @@ class API {
     description: string,
     theme?: string
   ): Promise<any> {
-    return this.request('/generation/colors', {
+    return this.request('/generate/colors', {
       method: 'POST',
       body: JSON.stringify({ 
         business_name: businessName,
@@ -170,7 +171,7 @@ class API {
     description: string,
     tone?: string
   ): Promise<any> {
-    return this.request('/generation/taglines', {
+    return this.request('/generate/taglines', {
       method: 'POST',
       body: JSON.stringify({ 
         business_name: businessName,
@@ -181,7 +182,7 @@ class API {
   }
 
   async checkDomains(domains: string[]): Promise<any> {
-    return this.request('/generation/domains/check', {
+    return this.request('/generate/domains/check', {
       method: 'POST',
       body: JSON.stringify({ domains })
     });
