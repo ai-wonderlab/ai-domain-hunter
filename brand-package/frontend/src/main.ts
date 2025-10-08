@@ -61,8 +61,10 @@ const setupLandingPage = () => {
 // Studio page handlers
 const setupStudioPage = () => {
   // Import and initialize studio app
-  import('./scripts/studio').then(({ StudioApp }) => {
-    new StudioApp();
+  import('./scripts/studio-app').then(() => {
+    console.log('✅ Studio app loaded');
+  }).catch(error => {
+    console.error('Failed to load studio app:', error);
   });
 };
 

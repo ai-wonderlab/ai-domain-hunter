@@ -6,6 +6,7 @@ import logging
 import asyncio
 from datetime import datetime
 import uuid
+import re
 
 from services.base_service import BaseService
 from services.name_service import NameService
