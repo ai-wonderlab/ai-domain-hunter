@@ -7,6 +7,7 @@ from typing import Dict, Any
 from api.schemas.request_schemas import (
     GenerateNamesRequest,
     CheckDomainsRequest,
+    GenerateDomainsRequest,
     GenerateLogosRequest,
     GenerateColorsRequest,
     GenerateTaglinesRequest,
@@ -84,19 +85,19 @@ async def check_domains(
 ) -> CheckDomainsResponse:
     """Check domain availability"""
     try:
-        service = DomainService()
-        result = await service.check_domains(
-            domains=request.domains,
-            user_id=user_id
-        )
-        
-        return CheckDomainsResponse(
-            success=True,
-            results=result['results'],
-            generation_id=result['generation_id'],
-            total_checked=result['total_checked'],
-            available_count=result['available_count']
-        )
+        async with DomainService() as service:
+            result = await service.check_domains(
+                domains=request.domains,
+                user_id=user_id
+            )
+            
+            return CheckDomainsResponse(
+                success=True,
+                results=result['results'],
+                generation_id=result['generation_id'],
+                total_checked=result['total_checked'],
+                available_count=result['available_count']
+            )
         
     except ValidationError as e:
         raise HTTPException(
@@ -285,6 +286,112 @@ async def generate_package(
             detail="Failed to generate package"
         )
 
+@router.post("/domains/generate", response_model=CheckDomainsResponse)
+async def generate_domains(
+    request: GenerateDomainsRequest,
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> CheckDomainsResponse:
+    """Generate domain variations with AI and check availability"""
+    try:
+        async with DomainService() as service:
+            logger.info(f"🚀 Generating domains for: {request.business_name}")
+            
+            result = await service.generate(
+                description=request.description,
+                user_id=user_id,
+                business_name=request.business_name
+            )
+            
+            return CheckDomainsResponse(
+                success=True,
+                results=result['results'],
+                generation_id=result['generation_id'],
+                total_checked=result['total_checked'],
+                available_count=result['available_count'],
+                rounds=result.get('rounds', 1)  # ✅ ADD THIS
+            )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Domain generation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate domains: {str(e)}"
+        )
+
+@router.post("/domains/find-available", response_model=CheckDomainsResponse)
+async def find_available_domains(
+    request: CheckDomainsRequest,
+    user_id: str = Depends(get_current_user)
+) -> CheckDomainsResponse:
+    """Check domain availability"""
+    try:
+        async with DomainService() as service:  # ✅ ADD async with
+            logger.info(f"Domain APIs configured: {service.domain_apis}")
+            result = await service.check_domains(
+                domains=request.domains,
+                user_id=user_id
+            )
+            
+            return CheckDomainsResponse(
+                success=True,
+                results=result['results'],
+                generation_id=result['generation_id'],
+                total_checked=result['total_checked'],
+                available_count=result['available_count']
+            )
+        
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Domain check failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to check domains"
+        )
+
+@router.post("/domains/regenerate", response_model=CheckDomainsResponse)
+async def regenerate_domains(
+    request: Dict[str, Any],  # Use Dict for flexibility
+    user_id: str = Depends(get_current_user),
+    _: None = Depends(check_rate_limit)
+) -> CheckDomainsResponse:
+    """Regenerate domains with feedback"""
+    try:
+        async with DomainService() as service:
+            logger.info(f"🔄 Regenerating domains for: {request.get('business_name')}")
+            
+            result = await service.regenerate(
+                business_name=request.get('business_name'),
+                description=request.get('description', ''),
+                feedback=request.get('feedback', ''),
+                exclude_domains=request.get('exclude_domains', []),
+                user_id=user_id
+            )
+            
+            return CheckDomainsResponse(
+                success=True,
+                results=result['results'],
+                generation_id=result['generation_id'],
+                total_checked=result['total_checked'],
+                available_count=result['available_count'],
+                rounds=result.get('rounds', 1)
+            )
+        
+    except Exception as e:
+        logger.error(f"Domain regeneration failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to regenerate domains: {str(e)}"
+        )
 
 @router.post("/regenerate/{component}")
 async def regenerate_component(

@@ -46,6 +46,7 @@ class CheckDomainsResponse(BaseResponse):
     generation_id: str
     total_checked: int
     available_count: int
+    rounds: Optional[int] = 1
 
 
 # Logo Generation Response

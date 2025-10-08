@@ -23,10 +23,9 @@ export class NavigationManager {
       return false;
     }
     
-    // Add to history if not already there
-    if (session.navigation.history[session.navigation.history.length - 1] !== phase) {
-      session.navigation.history.push(phase);
-    }
+    // Remove duplicates in history
+    const uniqueHistory = [...new Set([...session.navigation.history, phase])];
+    session.navigation.history = uniqueHistory;
     
     // Update current phase
     session.currentPhase = phase;
@@ -81,48 +80,71 @@ export class NavigationManager {
    * Can navigate to phase?
    */
   canNavigateTo(phase: PhaseType): boolean {
-    const session = this.stateManager.getSession();
-    
-    // Can always go to initial
-    if (phase === 'initial') return true;
-    
-    // Define phase dependencies
-    const dependencies: { [key in PhaseType]?: (keyof typeof session.phases)[] } = {
-      'names': [],
-      'domains': ['names'],
-      'logo_prefs': ['names'],
-      'logos': ['logoPreferences'],
-      'tagline_prefs': ['names'],
-      'taglines': ['taglinePreferences'],
-      'complete': []
-    };
-    
-    const required = dependencies[phase] || [];
-    
-    // Check all dependencies are completed
-    for (const dep of required) {
-      const depStatus = session.phases[dep]?.status;
-      if (depStatus !== 'completed' && depStatus !== 'skipped') {
-        return false;
-      }
-    }
-    
-    // Check if service is selected
-    const serviceMap: { [key in PhaseType]?: string } = {
-      'names': 'name',
-      'domains': 'domain',
-      'logo_prefs': 'logo',
-      'logos': 'logo',
-      'tagline_prefs': 'tagline',
-      'taglines': 'tagline'
-    };
-    
-    const requiredService = serviceMap[phase];
-    if (requiredService && !session.input.selectedServices.includes(requiredService)) {
+  const session = this.stateManager.getSession();
+  
+  // Can always go to initial
+  if (phase === 'initial') return true;
+
+  // Can go to any phase in history
+  if (session.navigation.history.includes(phase)) {
+    return true;
+  }
+
+  // Map phase names to session.phases keys
+  const phaseKeyMap: Record<string, string> = {
+    'logo_prefs': 'logoPreferences',
+    'tagline_prefs': 'taglinePreferences',
+    'names': 'names',
+    'domains': 'domains',
+    'logos': 'logos',
+    'taglines': 'taglines'
+  };
+  
+  const phaseKey = (phaseKeyMap[phase] || phase) as keyof typeof session.phases;
+  const phaseData = session.phases[phaseKey];
+  
+  // Can go to phases that are completed or in progress
+  if (phaseData && (phaseData.status === 'completed' || phaseData.status === 'in_progress')) {
+    return true;
+  }
+  
+  // Define phase dependencies
+  const dependencies: { [key in PhaseType]?: string[] } = {
+    'names': [],
+    'domains': ['names'],
+    'logo_prefs': ['names'],
+    'logos': ['logoPreferences'],
+    'tagline_prefs': ['names'],
+    'taglines': ['taglinePreferences'],
+    'complete': []
+  };
+  
+  const required = dependencies[phase] || [];
+  
+  // Check all dependencies are completed
+  for (const dep of required) {
+    const depData = session.phases[dep as keyof typeof session.phases];
+    if (depData && depData.status !== 'completed' && depData.status !== 'skipped') {
       return false;
     }
-    
-    return true;
+  }
+  
+  // Check if service is selected
+  const serviceMap: { [key in PhaseType]?: string } = {
+    'names': 'name',
+    'domains': 'domain',
+    'logo_prefs': 'logo',
+    'logos': 'logo',
+    'tagline_prefs': 'tagline',
+    'taglines': 'tagline'
+  };
+  
+  const requiredService = serviceMap[phase];
+  if (requiredService && !session.input.selectedServices.includes(requiredService)) {
+    return false;
+  }
+  
+  return true;
   }
   
   /**

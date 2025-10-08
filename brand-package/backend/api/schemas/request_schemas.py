@@ -38,6 +38,10 @@ class CheckDomainsRequest(BaseModel):
             raise ValueError("No valid domains provided")
         return cleaned
 
+class GenerateDomainsRequest(BaseModel):
+    """Request for generating domain variations with AI"""
+    business_name: str = Field(..., min_length=1, max_length=50)
+    description: Optional[str] = Field(default="", max_length=500)
 
 # Logo Generation
 class GenerateLogosRequest(GenerationBase):

@@ -17,6 +17,7 @@ from api.schemas.base_schema import (
 from api.schemas.request_schemas import (
     GenerateNamesRequest,
     CheckDomainsRequest,
+    GenerateDomainsRequest,
     GenerateLogosRequest,
     GenerateColorsRequest,
     GenerateTaglinesRequest,
@@ -78,6 +79,7 @@ __all__ = [
     # Requests
     "GenerateNamesRequest",
     "CheckDomainsRequest",
+    "GenerateDomainsRequest",
     "GenerateLogosRequest",
     "GenerateColorsRequest",
     "GenerateTaglinesRequest",

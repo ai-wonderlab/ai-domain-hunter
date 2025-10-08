@@ -6,6 +6,7 @@ import { StateManager } from './state-manager';
 import { NavigationManager } from './navigation-manager';
 import { PhaseRenderer } from './phase-renderer';
 import { PhaseController } from './phase-controller';
+import type { PhaseType } from './state-manager';
 
 class StudioApp {
   private stateManager: StateManager;
@@ -29,28 +30,170 @@ class StudioApp {
     // Setup
     this.init();
   }
-  
+
   /**
    * Initialize app
    */
   private async init(): Promise<void> {
-    // Try to load existing session
-    const loaded = this.stateManager.loadFromLocalStorage();
-    
-    if (loaded) {
-      console.log('✅ Loaded existing session');
-      const session = this.stateManager.getSession();
-      this.resumeSession(session.currentPhase);
-    } else {
-      console.log('🆕 Starting new session');
-      this.startNewSession();
-    }
+    // Show session selection modal
+    this.showSessionModal();
     
     // Setup global listeners
     this.setupGlobalListeners();
+    this.setupPhaseStatusListener();
     
     // Update UI
     this.updateLeftPanel();
+  }
+
+  /**
+   * Show session selection modal
+   */
+  private showSessionModal(): void {
+    const existingSession = localStorage.getItem(this.stateManager.getSessionKey());
+    
+    if (!existingSession) {
+      // No existing session, start fresh
+      this.startNewSession();
+      return;
+    }
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'session-modal-overlay';
+    modal.innerHTML = `
+      <div class="session-modal">
+        <h2>Welcome Back! 👋</h2>
+        <p>You have an existing session. What would you like to do?</p>
+        
+        <div class="session-actions">
+          <button id="continue-session-btn" class="primary-btn gradient-btn">
+            ↩️ Continue Last Session
+          </button>
+          <button id="new-session-btn" class="secondary-btn">
+            ✨ Start Fresh
+          </button>
+          <button id="view-history-btn" class="secondary-btn">
+            📋 View All Sessions
+          </button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Continue button
+    modal.querySelector('#continue-session-btn')?.addEventListener('click', () => {
+      modal.remove();
+      const loaded = this.stateManager.loadFromLocalStorage();
+      if (loaded) {
+        const session = this.stateManager.getSession();
+        this.resumeSession(session.currentPhase);
+      }
+    });
+    
+    // New session button
+    modal.querySelector('#new-session-btn')?.addEventListener('click', () => {
+      modal.remove();
+      // Save current session to history first
+      this.saveSessionToHistory();
+      // Clear current and start new
+      this.stateManager.clearSession();
+      this.startNewSession();
+    });
+    
+    // View history button
+    modal.querySelector('#view-history-btn')?.addEventListener('click', () => {
+      modal.remove();
+      this.showSessionHistory();
+    });
+  }
+
+  /**
+   * Save current session to history
+   */
+  private saveSessionToHistory(): void {
+    const session = this.stateManager.getSession();
+    const history = JSON.parse(localStorage.getItem('session_history') || '[]');
+    
+    history.unshift({
+      sessionId: session.sessionId,
+      createdAt: session.createdAt,
+      lastSaved: session.lastSaved,
+      currentPhase: session.currentPhase,
+      selectedName: session.phases.names.selectedName,
+      data: JSON.stringify(session) // Full session data
+    });
+    
+    // Keep last 10 sessions
+    if (history.length > 10) history.length = 10;
+    
+    localStorage.setItem('session_history', JSON.stringify(history));
+  }
+
+  /**
+   * Show session history modal
+   */
+  private showSessionHistory(): void {
+    const history = JSON.parse(localStorage.getItem('session_history') || '[]');
+    
+    const modal = document.createElement('div');
+    modal.className = 'session-modal-overlay';
+    modal.innerHTML = `
+      <div class="session-modal large">
+        <h2>📋 Your Sessions</h2>
+        
+        <div class="session-list">
+          ${history.length === 0 ? '<p>No saved sessions yet</p>' : 
+            history.map((s: any, i: number) => `
+              <div class="session-item" data-index="${i}">
+                <div class="session-info">
+                  <strong>${s.selectedName || 'Unnamed'}</strong>
+                  <small>Phase: ${s.currentPhase}</small>
+                  <small>${new Date(s.lastSaved).toLocaleString()}</small>
+                </div>
+                <button class="resume-btn" data-index="${i}">Resume →</button>
+              </div>
+            `).join('')
+          }
+        </div>
+        
+        <button id="close-history-btn" class="secondary-btn">Close</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Resume buttons
+    modal.querySelectorAll('.resume-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt((e.target as HTMLElement).getAttribute('data-index') || '0');
+        const sessionData = JSON.parse(history[index].data);
+        
+        // Load this session
+        this.stateManager.setSession(sessionData);
+        this.stateManager.saveToLocalStorage();
+        
+        modal.remove();
+        location.reload();
+      });
+    });
+    
+    // Close button
+    modal.querySelector('#close-history-btn')?.addEventListener('click', () => {
+      modal.remove();
+      this.showSessionModal(); // Go back to main modal
+    });
+  }
+
+  /**
+   * Listen for phase status changes
+   */
+  private setupPhaseStatusListener(): void {
+    window.addEventListener('phase-status-changed', () => {
+      this.updateBreadcrumb();
+      this.updateProgressBar();
+    });
   }
   
   /**
@@ -108,6 +251,18 @@ class StudioApp {
       this.stateManager.saveToLocalStorage();
       this.showToast('Session saved! 💾', 'success');
       this.updateLeftPanel();
+    });
+    
+    // Breadcrumb clicks - allow navigation to any phase in history
+    document.addEventListener('click', (e) => {
+      const breadcrumb = (e.target as HTMLElement).closest('.breadcrumb-item');
+      if (breadcrumb) {
+        const phase = breadcrumb.getAttribute('data-phase') as PhaseType;
+        if (phase && this.navigationManager.canNavigateTo(phase)) {
+          this.navigationManager.goToPhase(phase);
+          window.dispatchEvent(new CustomEvent('phase-changed'));
+        }
+      }
     });
   }
   
@@ -235,18 +390,6 @@ class StudioApp {
     }).join('');
     
     container.innerHTML = html;
-    
-    // Add click listeners to completed breadcrumbs
-    const items = container.querySelectorAll('.breadcrumb-item.completed');
-    items.forEach(item => {
-      item.addEventListener('click', (e) => {
-        const phase = (e.currentTarget as HTMLElement).getAttribute('data-phase');
-        if (phase) {
-          this.navigationManager.goToPhase(phase as any);
-          window.dispatchEvent(new CustomEvent('phase-changed'));
-        }
-      });
-    });
   }
   
   /**
@@ -352,7 +495,7 @@ class StudioApp {
   }
 }
 
-// ====== FIX: Initialize immediately or when DOM ready ======
+// Initialize when DOM is ready
 function initStudioApp() {
   console.log('🎬 Initializing StudioApp...');
   new StudioApp();
@@ -360,10 +503,8 @@ function initStudioApp() {
 
 // Check if DOM is already loaded
 if (document.readyState === 'loading') {
-  // DOM still loading, wait for it
   document.addEventListener('DOMContentLoaded', initStudioApp);
 } else {
-  // DOM already loaded, initialize immediately
   initStudioApp();
 }
 

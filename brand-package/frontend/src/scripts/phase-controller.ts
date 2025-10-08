@@ -88,21 +88,18 @@ export class PhaseController {
    */
   async regenerateNames(feedback: string): Promise<void> {
     const session = this.stateManager.getSession();
-    const generationId = session.phases.names.generationId;
-    
-    if (!generationId) {
-      this.showError('No previous generation found');
-      return;
-    }
     
     try {
-      this.showLoader('Regenerating names based on your feedback...');
+      this.showLoader('Regenerating names...', 'Applying your feedback');
       
-      const result = await apiClient.regenerateNames({
-        generation_id: generationId,
-        feedback
+      // Call same endpoint, append feedback to description
+      const result = await apiClient.generateNames({
+        description: `${session.input.description}\n\nUser feedback: ${feedback}`,
+        industry: undefined,
+        style: undefined
       });
       
+      // Update state with new results
       this.stateManager.updatePhase('names', {
         generatedOptions: result.names,
         generationId: result.generation_id
@@ -113,8 +110,7 @@ export class PhaseController {
       
     } catch (error) {
       this.hideLoader();
-      this.showError('Failed to regenerate names: ' + (error as Error).message);
-      console.error('Name regeneration error:', error);
+      this.showError('Failed to regenerate: ' + (error as Error).message);
     }
   }
   
@@ -123,6 +119,7 @@ export class PhaseController {
    */
   async generateDomains(): Promise<void> {
     const businessName = this.stateManager.getBusinessName();
+    const session = this.stateManager.getSession();
     
     if (!businessName) {
       this.showError('Business name is required for domain search');
@@ -133,20 +130,22 @@ export class PhaseController {
       this.stateManager.startPhase('domains');
       
       this.showLoader(
-        `Finding available domains for "${businessName}"...`,
-        'Checking .com and .ai domains first'
+        `Finding domains for "${businessName}"...`,
+        'AI is generating variations and checking availability'
       );
       
-      const result = await apiClient.findAvailableDomains({
+      // Call NEW AI-powered domain generation
+      const result = await apiClient.generateDomains({
         business_name: businessName,
-        count: 10,
-        focus_tlds: ['.com', '.ai']
+        description: session.input.description
       });
       
+      console.log('Domain generation result:', result);
+      
       this.stateManager.updatePhase('domains', {
-        availableOptions: result.domains,
-        checkedVariations: result.checked_variations,
-        checkRounds: result.rounds
+        availableOptions: result.results || [],
+        checkedVariations: [],
+        checkRounds: result.rounds || 1
       });
       
       this.hideLoader();
@@ -154,8 +153,50 @@ export class PhaseController {
       
     } catch (error) {
       this.hideLoader();
-      this.showError('Failed to find domains: ' + (error as Error).message);
-      console.error('Domain search error:', error);
+      this.showError('Failed to generate domains: ' + (error as Error).message);
+      console.error('Domain generation error:', error);
+    }
+  }
+
+  /**
+   * Regenerate domains with feedback
+   */
+  async regenerateDomains(feedback: string): Promise<void> {
+    const session = this.stateManager.getSession();
+    const businessName = this.stateManager.getBusinessName();
+    
+    if (!businessName) {
+      this.showError('Business name is required');
+      return;
+    }
+    
+    try {
+      this.showLoader('Generating new domains...', 'Applying your feedback');
+      
+      // Get already checked domains to exclude
+      const checkedDomains = session.phases.domains.availableOptions.map((d: any) => d.domain);
+      
+      // Call regenerate endpoint with feedback
+      const result = await apiClient.regenerateDomains({
+        business_name: businessName,
+        description: session.input.description,
+        feedback: feedback,
+        exclude_domains: checkedDomains
+      });
+      
+      // Update state with new results
+      this.stateManager.updatePhase('domains', {
+        availableOptions: result.results,
+        checkedVariations: session.phases.domains.checkedVariations,
+        checkRounds: (session.phases.domains.checkRounds || 1) + 1
+      });
+      
+      this.hideLoader();
+      window.dispatchEvent(new CustomEvent('phase-data-ready'));
+      
+    } catch (error) {
+      this.hideLoader();
+      this.showError('Failed to regenerate: ' + (error as Error).message);
     }
   }
   

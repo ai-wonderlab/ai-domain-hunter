@@ -298,6 +298,11 @@ export class StateManager {
       ...updates 
     } as StudioSession['phases'][K];
     this.hasUnsavedChanges = true;
+
+    this.saveToLocalStorage();
+    window.dispatchEvent(new CustomEvent('phase-status-changed', { 
+        detail: { phase, status: this.session.phases[phase].status } 
+    }));
   }
   
   /**
@@ -365,6 +370,31 @@ export class StateManager {
       return false;
     }
   }
+
+    /**
+     * Get session key for localStorage
+     */
+    public getSessionKey(): string {
+    return `studio-session-${this.session.sessionId}`;
+    }
+
+    /**
+     * Clear current session
+     */
+    public clearSession(): void {
+    const key = this.getSessionKey();
+    localStorage.removeItem(key);
+    this.session = this.createNewSession();
+    console.log('✅ Session cleared');
+    }
+
+    /**
+     * Set session (for loading from history)
+     */
+    public setSession(session: StudioSession): void {
+    this.session = session;
+    this.saveToLocalStorage();
+    }
   
   /**
    * Find most recent session in localStorage

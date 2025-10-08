@@ -127,32 +127,30 @@ export class ApiClient {
     return this.post('/api/generate/names/regenerate', params);
   }
   
-  /**
+   /**
    * Find available domains
    */
-  async findAvailableDomains(params: {
-    business_name: string;
-    count?: number;
-    focus_tlds?: string[];
-  }): Promise<{
-    domains: Array<{
-      domain: string;
-      available: boolean;
-      status: string;
-      price: string;
-      registrar?: string;
-      registrar_link?: string;
-      checked_at: string;
+    async findAvailableDomains(params: {
+    domains: string[];
+    }): Promise<{
+    success: boolean;
+    results: Array<{  // ✅ Changed from 'domains' to 'results'
+        domain: string;
+        available: boolean;
+        status: string;
+        price: string;
+        registrar?: string;
+        registrar_link?: string;
+        checked_at: string;
     }>;
-    checked_variations: string[];
-    rounds: number;
-  }> {
-    return this.post('/api/domains/find-available', {
-      business_name: params.business_name,
-      count: params.count || 10,
-      focus_tlds: params.focus_tlds || ['.com', '.ai']
+    generation_id: string;
+    total_checked: number;
+    available_count: number;
+    }> {
+    return this.post('/api/generate/domains/find-available', {
+        domains: params.domains
     });
-  }
+    }
   
   /**
    * Check specific domains
@@ -168,7 +166,55 @@ export class ApiClient {
   }> {
     return this.post('/api/domains/check', { domains });
   }
+
+  /**
+     * Generate domain variations with AI
+     */
+    async generateDomains(params: {
+    business_name: string;
+    description?: string;
+    }): Promise<{
+    success: boolean;
+    results: Array<{
+        domain: string;
+        available: boolean;
+        status: string;
+        price: string;
+        registrar?: string;
+        registrar_link?: string;
+        checked_at: string;
+        method: string;
+    }>;
+    generation_id: string;
+    total_checked: number;
+    available_count: number;
+    rounds?: number;
+    }> {
+    return this.post('/api/generate/domains/generate', {
+        business_name: params.business_name,
+        description: params.description || ''
+    });
+    }
   
+    /**
+     * Regenerate domains with feedback
+     */
+    async regenerateDomains(params: {
+    business_name: string;
+    description: string;
+    feedback: string;
+    exclude_domains: string[];
+    }): Promise<{
+    success: boolean;
+    results: Array<any>;
+    generation_id: string;
+    total_checked: number;
+    available_count: number;
+    rounds?: number;
+    }> {
+    return this.post('/api/generate/domains/regenerate', params);
+    }
+
   /**
    * Analyze preferences for logo/tagline
    */

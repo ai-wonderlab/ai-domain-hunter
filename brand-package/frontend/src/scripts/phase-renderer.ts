@@ -47,6 +47,26 @@ export class PhaseRenderer {
         break;
       case 'domains':
         this.renderDomainsPhase();
+        // Wait for DOM to be ready, then add listener
+        setTimeout(() => {
+            const regenerateDomainsBtn = document.getElementById('regenerate-domains-btn');
+            const feedbackTextarea = document.getElementById('domain-feedback') as HTMLTextAreaElement;
+            
+            if (regenerateDomainsBtn && feedbackTextarea) {
+            regenerateDomainsBtn.addEventListener('click', async () => {
+                const feedback = feedbackTextarea.value;
+                if (!feedback || feedback.trim().length < 5) {
+                this.showToast('Please provide specific feedback', 'error');
+                return;
+                }
+                
+                // ✅ Add null check for phaseController
+                if (this.phaseController) {
+                await this.phaseController.regenerateDomains(feedback.trim());
+                }
+            });
+            }
+        }, 100);
         break;
       case 'logo_prefs':
         this.renderLogoPreferencesPhase();
@@ -567,45 +587,61 @@ export class PhaseRenderer {
   /**
    * Render Domains Phase
    */
-  private renderDomainsPhase(): void {
+    private renderDomainsPhase(): void {
     const session = this.stateManager.getSession();
     const domains = session.phases.domains.availableOptions;
     
     this.middlePanel.innerHTML = `
-      <div class="phase-content fade-in">
+        <div class="phase-content fade-in">
         <div class="phase-header">
-          <h2>🌐 Choose Your Domain</h2>
-          <p>We found 10 available domains for "${this.escapeHtml(this.stateManager.getBusinessName() || '')}"</p>
+            <h2>🌐 Choose Your Domain</h2>
+            <p>We found 10 available domains for "${this.escapeHtml(this.stateManager.getBusinessName() || '')}"</p>
         </div>
         
         <div class="phase-divider"></div>
         
         <div id="domains-list" class="domains-list">
-          ${domains.length === 0 ? this.renderLoadingState('Finding available domains...') : this.renderDomainOptions(domains)}
+            ${domains.length === 0 ? this.renderLoadingState('Finding available domains...') : this.renderDomainOptions(domains)}
         </div>
         
         ${domains.length > 0 ? `
-          <div class="domains-info">
+            <div class="domains-info">
             ℹ️ Checked ${session.phases.domains.checkedVariations.length} variations across ${session.phases.domains.checkRounds} rounds to find these 10
-          </div>
+            </div>
+        ` : ''}
+        
+        <!-- ✅ ADD THIS REGENERATE SECTION HERE -->
+        ${domains.length > 0 ? `
+            <div class="regenerate-section">
+            <h3>Not finding what you need?</h3>
+            <p>Tell us what you're looking for and we'll generate new options</p>
+            <textarea 
+                id="domain-feedback" 
+                placeholder="E.g., 'shorter names', 'include tech keywords', 'more professional', 'easier to spell'..."
+                rows="3"
+            ></textarea>
+            <button id="regenerate-domains-btn" class="secondary-btn">
+                🔄 Generate New Options
+            </button>
+            </div>
         ` : ''}
         
         <div class="phase-divider"></div>
         
         <div class="phase-actions">
-          <button id="back-btn" class="secondary-btn">
+            <button id="back-btn" class="secondary-btn">
             ← Back to Names
-          </button>
-          <button id="continue-btn" class="primary-btn gradient-btn" ${!session.phases.domains.selectedDomain ? 'disabled' : ''}>
+            </button>
+            <button id="continue-btn" class="primary-btn gradient-btn" ${!session.phases.domains.selectedDomain ? 'disabled' : ''}>
             Continue →
-          </button>
+            </button>
         </div>
-      </div>
+        </div>
     `;
     
     this.setupDomainsPhaseListeners();
     this.updatePreviewPanel();
-  }
+    }
   
   /**
    * Render domain options
