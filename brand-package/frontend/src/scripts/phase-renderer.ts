@@ -265,9 +265,6 @@ export class PhaseRenderer {
         
         <!-- Actions -->
         <div class="form-actions">
-          <button id="save-draft-btn" class="secondary-btn">
-            💾 Save Draft
-          </button>
           <button id="start-generation-btn" class="primary-btn gradient-btn">
             ✨ Start Generation →
           </button>
@@ -360,13 +357,6 @@ export class PhaseRenderer {
         
         this.stateManager.updateInput({ selectedServices: services });
       });
-    });
-    
-    // Save draft button
-    const saveDraftBtn = document.getElementById('save-draft-btn');
-    saveDraftBtn?.addEventListener('click', () => {
-      this.stateManager.saveToLocalStorage();
-      this.showToast('Draft saved successfully! ✅', 'success');
     });
     
     // Start generation button
