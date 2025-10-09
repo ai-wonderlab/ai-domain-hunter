@@ -5,10 +5,17 @@
 import { StateManager } from './state-manager';
 import { NavigationManager } from './navigation-manager';
 import { apiClient } from './api-client';
+import type { PhaseType } from './state-manager';
 
 export class PhaseController {
   private stateManager: StateManager;
   private navigationManager: NavigationManager;
+  
+  // DOMAIN FIX: Track what business name was used for domain generation
+  private lastDomainGenerationName: string | null = null;
+  
+  // NAMES FIX: Track what description was used for names generation
+  private lastNamesGenerationDesc: string | null = null;
   
   constructor(stateManager: StateManager, navigationManager: NavigationManager) {
     this.stateManager = stateManager;
@@ -16,11 +23,16 @@ export class PhaseController {
   }
   
   /**
+   * Get current session
+   */
+  getSession() {
+    return this.stateManager.getSession();
+  }
+  
+  /**
    * Start generation workflow
    */
   async startWorkflow(): Promise<void> {
-    const session = this.stateManager.getSession();
-    
     // Determine first phase
     const nextPhase = this.navigationManager.getNextPhaseFromInitial();
     
@@ -48,14 +60,32 @@ export class PhaseController {
    * Generate business names
    */
   async generateNames(): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
+    
+    // NAMES FIX: Check if description has changed since last generation
+    const descChanged = this.lastNamesGenerationDesc !== null && 
+                       this.lastNamesGenerationDesc !== session.input.description;
+    
+    // Clear old names if description changed
+    if (descChanged) {
+      console.log(`Description changed from "${this.lastNamesGenerationDesc}" to "${session.input.description}". Clearing old names...`);
+      this.stateManager.updatePhase('names', {
+        generatedOptions: [],
+        selectedName: null,
+        status: 'not_started'
+      });
+    }
+    
+    // Skip if already generated for this description
+    if (!descChanged && session.phases.names.generatedOptions.length > 0 && 
+        this.lastNamesGenerationDesc === session.input.description) {
+      console.log(`Names already generated for this description, skipping...`);
+      return;
+    }
     
     try {
-      // Mark phase as started
       this.stateManager.startPhase('names');
-      
-      // Show loading
-      this.showLoader('Generating business names...', 'Analyzing thousands of successful brands');
+      this.showLoader('Generating business names...', 'AI is creating unique options');
       
       // Call API
       const result = await apiClient.generateNames({
@@ -64,20 +94,21 @@ export class PhaseController {
         style: undefined
       });
       
-      // Update state with results
+      // STORE THE DESCRIPTION USED FOR THIS GENERATION
+      this.lastNamesGenerationDesc = session.input.description;
+      
       this.stateManager.updatePhase('names', {
         generatedOptions: result.names,
-        generationId: result.generation_id
+        generationId: result.generation_id,
+        status: 'completed'
       });
       
-      // Hide loader
       this.hideLoader();
-      
-      // Trigger re-render
       window.dispatchEvent(new CustomEvent('phase-data-ready'));
       
     } catch (error) {
       this.hideLoader();
+      this.stateManager.updatePhase('names', { status: 'not_started' });
       this.showError('Failed to generate names: ' + (error as Error).message);
       console.error('Name generation error:', error);
     }
@@ -87,17 +118,20 @@ export class PhaseController {
    * Regenerate names with feedback
    */
   async regenerateNames(feedback: string): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
     
     try {
       this.showLoader('Regenerating names...', 'Applying your feedback');
       
-      // Call same endpoint, append feedback to description
+            // Call same endpoint, append feedback to description
       const result = await apiClient.generateNames({
         description: `${session.input.description}\n\nUser feedback: ${feedback}`,
         industry: undefined,
         style: undefined
       });
+      
+      // STORE THE DESCRIPTION USED FOR THIS GENERATION
+      this.lastNamesGenerationDesc = session.input.description;
       
       // Update state with new results
       this.stateManager.updatePhase('names', {
@@ -115,59 +149,81 @@ export class PhaseController {
   }
   
   /**
-   * Generate/find available domains
+   * Generate/find available domains - WITH DOMAIN FIX
    */
   async generateDomains(): Promise<void> {
-    const businessName = this.stateManager.getBusinessName();
-    const session = this.stateManager.getSession();
-    
+    const session = this.getSession();
+    const businessName = session.input.businessName || 
+                        session.phases.names.selectedName;
+
     if (!businessName) {
-      this.showError('Business name is required for domain search');
+      throw new Error('No business name selected');
+    }
+
+    // DOMAIN FIX: Check if business name has changed since last generation
+    const nameHasChanged = this.lastDomainGenerationName !== null && 
+                          this.lastDomainGenerationName !== businessName;
+    
+    // Clear old domains if name changed
+    if (nameHasChanged) {
+      console.log(`Business name changed from "${this.lastDomainGenerationName}" to "${businessName}". Clearing old domains...`);
+      this.stateManager.updatePhase('domains', {
+        availableOptions: [],
+        checkedVariations: [],
+        checkRounds: 0,
+        selectedDomain: null,
+        status: 'not_started'
+      });
+    }
+
+    // Skip if already have domains for this name
+    if (!nameHasChanged && 
+        session.phases.domains.availableOptions.length > 0 &&
+        this.lastDomainGenerationName === businessName) {
+      console.log(`Domains already generated for "${businessName}", skipping...`);
       return;
     }
-    
+
     try {
-      this.stateManager.startPhase('domains');
+      this.stateManager.updatePhase('domains', { status: 'in_progress' });
       
-      this.showLoader(
-        `Finding domains for "${businessName}"...`,
-        'AI is generating variations and checking availability'
-      );
-      
-      // Call NEW AI-powered domain generation
       const result = await apiClient.generateDomains({
         business_name: businessName,
         description: session.input.description
       });
-      
+
       console.log('Domain generation result:', result);
-      
+
+      // DOMAIN FIX: Store the name used for this generation
+      this.lastDomainGenerationName = businessName;
+
       this.stateManager.updatePhase('domains', {
-        availableOptions: result.results || [],
+        availableOptions: result.results,
         checkedVariations: [],
-        checkRounds: result.rounds || 1
+        checkRounds: result.rounds || 1,
+        status: 'completed'
       });
       
       this.hideLoader();
       window.dispatchEvent(new CustomEvent('phase-data-ready'));
       
     } catch (error) {
-      this.hideLoader();
-      this.showError('Failed to generate domains: ' + (error as Error).message);
-      console.error('Domain generation error:', error);
+      console.error('Failed to generate domains:', error);
+      this.stateManager.updatePhase('domains', { status: 'not_started' });
+      throw error;
     }
   }
-
+  
   /**
    * Regenerate domains with feedback
    */
   async regenerateDomains(feedback: string): Promise<void> {
-    const session = this.stateManager.getSession();
-    const businessName = this.stateManager.getBusinessName();
+    const session = this.getSession();
+    const businessName = session.input.businessName || 
+                        session.phases.names.selectedName;
     
     if (!businessName) {
-      this.showError('Business name is required');
-      return;
+      throw new Error('No business name selected');
     }
     
     try {
@@ -183,6 +239,9 @@ export class PhaseController {
         feedback: feedback,
         exclude_domains: checkedDomains
       });
+      
+      // DOMAIN FIX: Update the last generation name
+      this.lastDomainGenerationName = businessName;
       
       // Update state with new results
       this.stateManager.updatePhase('domains', {
@@ -204,7 +263,7 @@ export class PhaseController {
    * Prepare logo preferences (AI suggestions)
    */
   async prepareLogoPreferences(): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
     const businessName = this.stateManager.getBusinessName();
     
     try {
@@ -237,7 +296,7 @@ export class PhaseController {
    * Generate logos
    */
   async generateLogos(): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
     const businessName = this.stateManager.getBusinessName();
     const prefs = session.phases.logoPreferences.userChoice;
     
@@ -285,7 +344,7 @@ export class PhaseController {
    * Prepare tagline preferences
    */
   async prepareTaglinePreferences(): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
     const businessName = this.stateManager.getBusinessName();
     
     try {
@@ -317,7 +376,7 @@ export class PhaseController {
    * Generate taglines
    */
   async generateTaglines(): Promise<void> {
-    const session = this.stateManager.getSession();
+    const session = this.getSession();
     const businessName = this.stateManager.getBusinessName();
     const prefs = session.phases.taglinePreferences.userChoice;
     
@@ -350,6 +409,52 @@ export class PhaseController {
       this.showError('Failed to generate taglines: ' + (error as Error).message);
       console.error('Tagline generation error:', error);
     }
+  }
+  
+  /**
+   * Navigate to a specific phase
+   */
+  async navigateToPhase(phase: PhaseType) {
+    // DOMAIN FIX: Check if name changed when navigating to domains
+    if (phase === 'domains') {
+      await this.generateDomains();
+    }
+    
+    this.navigationManager.goToPhase(phase);
+  }
+  
+  /**
+   * Load session - WITH DOMAIN FIX
+   */
+  loadSession(sessionId: string): void {
+    this.stateManager.loadFromLocalStorage(sessionId);
+    
+    // DOMAIN FIX: Reset the domain generation tracker when loading a session
+    const session = this.getSession();
+    if (session.phases.domains.availableOptions.length > 0) {
+      this.lastDomainGenerationName = session.input.businessName || 
+                                      session.phases.names.selectedName;
+    } else {
+      this.lastDomainGenerationName = null;
+    }
+    
+    // NAMES FIX: Reset the names generation tracker when loading a session
+    if (session.phases.names.generatedOptions.length > 0) {
+      this.lastNamesGenerationDesc = session.input.description;
+    } else {
+      this.lastNamesGenerationDesc = null;
+    }
+  }
+  
+  /**
+   * Clear session - WITH DOMAIN FIX
+   */
+  clearSession(): void {
+    this.stateManager.clearSession();
+    // DOMAIN FIX: Clear the tracker
+    this.lastDomainGenerationName = null;
+    // NAMES FIX: Clear the tracker
+    this.lastNamesGenerationDesc = null;
   }
   
   /**

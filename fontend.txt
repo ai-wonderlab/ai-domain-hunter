@@ -1,0 +1,269 @@
+Brand Package Generator Frontend - Architecture Documentation
+Project Overview
+The Brand Package Generator is a glassmorphic, AI-powered brand identity platform built with TypeScript, Vite, and vanilla JavaScript. It features a sophisticated multi-phase workflow for generating business names, domains, logos, colors, and taglines through a sequential studio interface.
+Core Architecture
+Technology Stack
+
+Build Tool: Vite with TypeScript
+Framework: Vanilla TypeScript with modular architecture
+Styling: CSS with glassmorphic design system
+3D Graphics: Three.js for liquid marble background animations
+Animation: Motion library for smooth transitions
+State Management: Custom StateManager class with localStorage persistence
+
+Project Structure
+frontend/
+├── src/
+│   ├── scripts/          # Core application logic
+│   │   ├── state-manager.ts      # Central state management
+│   │   ├── navigation-manager.ts  # Phase navigation logic
+│   │   ├── phase-controller.ts   # API calls and business logic
+│   │   ├── phase-renderer.ts     # UI rendering for each phase
+│   │   ├── studio-app.ts         # Main application controller
+│   │   ├── api-client.ts         # Backend communication layer
+│   │   ├── liquid-bg.ts          # Three.js background animation
+│   │   └── animations.ts         # Motion animations
+│   ├── styles/           # Styling system
+│   │   ├── style.css            # Base styles and variables
+│   │   ├── studio-new.css       # Studio layout and panels
+│   │   ├── component.css        # Reusable components
+│   │   └── animations.css       # Animation keyframes
+│   └── types/            # TypeScript definitions
+│       └── api.types.ts         # API response types
+├── public/               # Static assets
+├── index.html           # Landing page
+└── studio.html          # Main studio interface
+Key Architectural Patterns
+1. Multi-Phase Sequential Workflow
+The application implements a sophisticated phase-based workflow:
+typescriptPhaseTypes: 'initial' | 'names' | 'domains' | 'logo_prefs' | 'logos' | 'tagline_prefs' | 'taglines' | 'complete'
+Each phase:
+
+Has its own state management
+Can be navigated to/from based on dependencies
+Triggers API calls when entered
+Saves progress automatically
+
+2. Manager Pattern Architecture
+The application uses a manager pattern with clear separation of concerns:
+
+StateManager: Centralized state with localStorage persistence
+NavigationManager: Phase navigation and dependency checking
+PhaseController: API orchestration and business logic
+PhaseRenderer: UI rendering and DOM manipulation
+
+3. Three-Panel Studio Layout
+┌─────────────┬──────────────────┬──────────────┐
+│   Left      │     Middle       │    Right     │
+│  Progress   │   Main Content   │   Preview    │
+│ Navigation  │    (Dynamic)     │   Context    │
+└─────────────┴──────────────────┴──────────────┘
+
+Left Panel: Progress tracking, breadcrumb navigation, session info
+Middle Panel: Dynamic content based on current phase
+Right Panel: Live preview of selections
+
+State Management System
+Session Structure
+typescriptStudioSession {
+  sessionId: string
+  currentPhase: PhaseType
+  input: {
+    description: string
+    businessName: string | null
+    hasBusinessName: boolean
+    selectedServices: string[]
+  }
+  phases: {
+    names: { status, generatedOptions, selectedName }
+    domains: { status, availableOptions, selectedDomain }
+    logoPreferences: { aiSuggestions, userChoice }
+    logos: { generatedOptions, selectedLogo }
+    taglinePreferences: { aiSuggestions, userChoice }
+    taglines: { generatedOptions, selectedTagline }
+  }
+  navigation: { history, canGoBack, nextPhase }
+}
+Persistence Strategy
+
+Auto-save every 30 seconds if changes detected
+Manual save on critical actions
+Session recovery on page reload
+Multiple session history support (last 10 sessions)
+
+API Integration Layer
+API Client Architecture
+The api-client.ts provides:
+
+Centralized backend communication
+Automatic token management
+Environment-based URL switching (dev/prod)
+Error handling and retry logic
+
+Key endpoints:
+
+generateNames() - AI-powered business name generation
+generateDomains() - Domain availability checking with variations
+generateLogos() - Multi-provider logo generation
+generateTaglines() - Brand voice tagline creation
+
+UI Component System
+Glassmorphic Design System
+CSS Variables for theming:
+css--glass-bg: rgba(255, 255, 255, 0.85)
+--glass-border: rgba(255, 255, 255, 0.4)
+--glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.1)
+Dark mode support with automatic theme switching.
+Reusable Components
+
+Glass Panels: Backdrop-filtered containers
+Option Cards: Radio/checkbox selections with hover states
+Loading States: Spinner with progress indicators
+Toast Notifications: Success/error/info messages
+Modal Overlays: Session selection, authentication
+
+Phase Implementation Details
+Initial Phase
+
+Business description input
+Service selection (names, domains, logos, colors, taglines)
+Business name decision (generate vs. existing)
+Form validation and draft saving
+
+Names Phase
+
+Display 10 AI-generated name options
+Score display and reasoning
+Regeneration with feedback
+Selection persistence
+
+Domains Phase
+
+Premium (.com, .ai) vs. alternatives
+Real-time availability checking
+Registrar links
+AI-powered variation generation
+
+Logo Preferences Phase
+
+Style selection (modern, classic, playful, etc.)
+Color theme preferences
+AI suggestions based on description
+
+Logos Phase
+
+Multiple concept display
+Download options
+Style variations
+
+Animation System
+Three.js Liquid Background
+
+Shader-based marble effect
+Theme-aware (light/dark)
+Performance optimized
+Non-blocking rendering
+
+Motion Animations
+
+Entrance animations for components
+Phase transitions
+Loading states
+Hover effects
+
+Development Workflow Integration
+For Claude Projects Usage
+When working with this frontend in Claude Projects:
+
+Strategic File Selection (~30K tokens):
+
+Core managers: state, navigation, phase controller
+Current phase renderer
+API client
+Main styles
+
+
+Knowledge Base Documents:
+
+This architecture document
+API endpoint specifications
+Design system guidelines
+Component patterns
+
+
+Custom Instructions:
+
+TypeScript strict mode
+Glassmorphic design maintenance
+Manager pattern consistency
+Phase dependency validation
+
+
+
+Critical Implementation Notes
+Token Optimization
+
+Each phase has independent rendering logic
+Lazy load phase-specific code
+Minimize state duplication
+
+Error Handling
+
+Graceful API failure recovery
+Session restoration on crashes
+User-friendly error messages
+Retry mechanisms for generation
+
+Performance Considerations
+
+Virtual scrolling for large lists
+Debounced API calls
+Optimistic UI updates
+Progressive enhancement
+
+Testing Strategy
+Key Test Areas
+
+Phase navigation flow
+State persistence/recovery
+API error handling
+Form validation
+Theme switching
+Session management
+
+Future Extensibility
+The architecture supports:
+
+New generation phases
+Additional AI providers
+Real-time collaboration
+Export/import functionality
+Team workspaces
+Analytics integration
+
+Deployment Configuration
+javascript// Vite config highlights
+- Multi-page app (index.html, studio.html)
+- API proxy for development
+- Path aliases (@/*)
+- Asset optimization
+Key Files Reference
+Entry Points:
+
+index.html - Landing page
+studio.html - Main application
+src/main.ts - Initialization
+
+Core Logic:
+
+studio-app.ts - Application bootstrapping
+state-manager.ts - State orchestration
+phase-renderer.ts - UI generation
+
+Styling:
+
+style.css - Base design system
+studio-new.css - Layout structure
+animations.css - Motion definitions
+
+This architecture provides a robust foundation for the Brand Package Generator, with clear separation of concerns, maintainable code structure, and extensibility for future features.

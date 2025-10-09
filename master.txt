@@ -1,0 +1,32 @@
+# Brand Package Generator - Architecture Patterns
+
+## Core Principle
+Provider-agnostic architecture with configurable services
+
+## Service Layers
+1. **Presentation** (React + TypeScript)
+   - Phase-based UI
+   - State persistence
+   - Progressive disclosure
+
+2. **Business Logic** (FastAPI)
+   - Service orchestration
+   - Generation pipeline
+   - Feedback processing
+
+3. **Integration** (Configurable)
+   - Text Generation: Multi-model via aggregator
+   - Image Generation: Provider with failover
+   - Domain Checking: Progressive (free → basic → premium)
+
+## Key Patterns
+- Dependency Injection for providers
+- Strategy Pattern for service selection
+- Repository Pattern for data access
+- Observer Pattern for state management
+
+## Migration Path
+Current → Future:
+- Basic domain check → Premium API (when ready)
+- Single image provider → Multiple with selection
+- Fixed models → Dynamic model selection

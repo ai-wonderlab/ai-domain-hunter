@@ -200,31 +200,31 @@ export class ApiClient {
      * Regenerate domains with feedback
      */
     async regenerateDomains(params: {
-    business_name: string;
-    description: string;
-    feedback: string;
-    exclude_domains: string[];
+        business_name: string;
+        description: string;
+        feedback: string;
+        exclude_domains: string[];
     }): Promise<{
-    success: boolean;
-    results: Array<any>;
-    generation_id: string;
-    total_checked: number;
-    available_count: number;
-    rounds?: number;
-    }> {
-    return this.post('/api/generate/domains/regenerate', params);
-    }
+        success: boolean;
+        results: Array<any>;
+        generation_id: string;
+        total_checked: number;
+        available_count: number;
+        rounds?: number;
+        }> {
+            return this.post('/api/generate/domains/regenerate', params);
+        }
 
-  /**
-   * Analyze preferences for logo/tagline
-   */
-  async analyzePreferences(params: {
-    description: string;
-    business_name?: string;
-    for: 'logo' | 'tagline';
-  }): Promise<any> {
-    return this.post('/api/analyze/preferences', params);
-  }
+    /**
+     * Analyze preferences for logo/tagline
+     */
+    async analyzePreferences(params: {
+        description: string;
+        business_name?: string;
+        for: 'logo' | 'tagline';
+    }): Promise<any> {
+        return this.post('/api/analyze/preferences', params);
+    }
   
   /**
    * Generate logos

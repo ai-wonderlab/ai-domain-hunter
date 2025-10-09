@@ -47,12 +47,40 @@ class StudioApp {
   }
 
   /**
+   * Find the most recent session key in localStorage
+   */
+  private findMostRecentSessionKey(): string | null {
+    let mostRecent: { key: string; timestamp: number } | null = null;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('studio-session-')) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          try {
+            const session = JSON.parse(data);
+            if (!mostRecent || session.lastSaved > mostRecent.timestamp) {
+              mostRecent = {
+                key: key,
+                timestamp: session.lastSaved
+              };
+            }
+          } catch (e) {}
+        }
+      }
+    }
+    
+    return mostRecent?.key || null;
+  }
+
+  /**
    * Show session selection modal
    */
   private showSessionModal(): void {
-    const existingSession = localStorage.getItem(this.stateManager.getSessionKey());
+    // Ψάξε για το πιο πρόσφατο session
+    const mostRecentKey = this.findMostRecentSessionKey();
     
-    if (!existingSession) {
+    if (!mostRecentKey) {
       // No existing session, start fresh
       this.startNewSession();
       return;
@@ -85,10 +113,14 @@ class StudioApp {
     // Continue button
     modal.querySelector('#continue-session-btn')?.addEventListener('click', () => {
       modal.remove();
-      const loaded = this.stateManager.loadFromLocalStorage();
-      if (loaded) {
-        const session = this.stateManager.getSession();
-        this.resumeSession(session.currentPhase);
+      // Load the most recent session by key
+      if (mostRecentKey) {
+        const sessionData = localStorage.getItem(mostRecentKey);
+        if (sessionData) {
+          const session = JSON.parse(sessionData);
+          this.stateManager.setSession(session);
+          this.resumeSession(session.currentPhase);
+        }
       }
     });
     
@@ -175,7 +207,14 @@ class StudioApp {
         this.stateManager.saveToLocalStorage();
         
         modal.remove();
-        location.reload();
+        
+        // ΜΗΝ κάνεις reload - απλά resume το session
+        this.resumeSession(sessionData.currentPhase);
+        
+        // Trigger phase change για να φορτώσει τα data
+        window.dispatchEvent(new CustomEvent('phase-changed', { 
+          detail: { phase: sessionData.currentPhase } 
+        }));
       });
     });
     
@@ -253,6 +292,33 @@ class StudioApp {
       this.updateLeftPanel();
     });
     
+    // New session button
+    const newSessionBtn = document.getElementById('new-session-btn');
+    newSessionBtn?.addEventListener('click', () => {
+      if (confirm('Start a new session? Current progress will be saved to history.')) {
+        this.saveSessionToHistory();
+        this.stateManager.clearSession();
+        
+        // ΜΗΝ κάνεις reload - απλά ξεκίνα νέο session
+        this.startNewSession();
+        
+        // Reset το UI
+        this.updateLeftPanel();
+        
+        // Πήγαινε στο initial phase
+        this.navigationManager.goToPhase('initial');
+        window.dispatchEvent(new CustomEvent('phase-changed', { 
+          detail: { phase: 'initial' } 
+        }));
+      }
+    });
+
+    // View history button  
+    const historyBtn = document.getElementById('view-history-btn');
+    historyBtn?.addEventListener('click', () => {
+      this.showSessionHistory();
+    });
+    
     // Breadcrumb clicks - allow navigation to any phase in history
     document.addEventListener('click', (e) => {
       const breadcrumb = (e.target as HTMLElement).closest('.breadcrumb-item');
@@ -281,9 +347,7 @@ class StudioApp {
         break;
         
       case 'domains':
-        if (session.phases.domains.availableOptions.length === 0) {
-          await this.phaseController.generateDomains();
-        }
+        await this.phaseController.generateDomains();
         break;
         
       case 'logo_prefs':
@@ -442,7 +506,7 @@ class StudioApp {
     const totalPhases = session.input.selectedServices.length + 1;
     let completedPhases = 1; // Initial is always complete if we're past it
     
-    Object.entries(session.phases).forEach(([phase, data]) => {
+    Object.entries(session.phases).forEach(([, data]) => {
       if (data.status === 'completed') {
         completedPhases++;
       }

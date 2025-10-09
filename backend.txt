@@ -1,0 +1,314 @@
+# Brand Package Generator - Backend Architecture
+
+## Overview
+
+**Architecture Pattern**: Layered Monolith  
+**Framework**: FastAPI (Python 3.11+)  
+**Database**: Supabase (PostgreSQL + Auth + Storage)  
+**Design Philosophy**: Service-oriented, Repository pattern, Dependency Injection
+
+---
+
+## Architecture Layers
+┌─────────────────────────────────────────────┐
+│            API Layer (Routes)                │  ← HTTP Interface
+├─────────────────────────────────────────────┤
+│         Middleware Layer                     │  ← Cross-cutting Concerns
+├─────────────────────────────────────────────┤
+│         Service Layer                        │  ← Business Logic
+├─────────────────────────────────────────────┤
+│         Core Components                      │  ← Shared Infrastructure
+├─────────────────────────────────────────────┤
+│         Database Layer                       │  ← Data Persistence
+└─────────────────────────────────────────────┘
+
+---
+
+## Directory Structure
+backend/
+├── main.py                     # Application entry point & lifecycle
+├── requirements.txt            # Python dependencies
+├── .env.example               # Environment template
+│
+├── api/                       # 🌐 HTTP Interface Layer
+│   ├── routes/                # API endpoint definitions
+│   │   ├── auth_routes.py    # Authentication endpoints
+│   │   ├── generation_routes.py # Core generation endpoints
+│   │   ├── user_routes.py    # User management
+│   │   ├── project_routes.py # Project management
+│   │   └── health_routes.py  # Health checks
+│   ├── schemas/               # Pydantic models
+│   │   ├── request_schemas.py # Input validation
+│   │   ├── response_schemas.py # Output formatting
+│   │   ├── auth_schemas.py   # Auth-specific schemas
+│   │   └── base_schema.py    # Base models
+│   └── dependencies.py        # FastAPI dependencies
+│
+├── services/                  # 💼 Business Logic Layer
+│   ├── base_service.py       # Abstract base service
+│   ├── name_service.py       # Name generation logic
+│   ├── domain_service.py     # Domain checking logic
+│   ├── logo_service.py       # Logo generation logic
+│   ├── color_service.py      # Color palette logic
+│   ├── tagline_service.py    # Tagline generation logic
+│   └── package_service.py    # Orchestration service
+│
+├── core/                      # 🧠 Core Infrastructure
+│   ├── ai_manager.py         # Unified AI operations
+│   ├── research_loader.py    # Pattern loading & caching
+│   ├── failover_manager.py   # Multi-provider failover
+│   └── exceptions.py         # Custom exceptions
+│
+├── database/                  # 🗄️ Data Persistence
+│   ├── client.py             # Supabase client setup
+│   ├── models.py             # Database models
+│   └── repositories/         # Data access patterns
+│
+├── middleware/               # 🛡️ Cross-cutting Concerns
+│   ├── auth.py              # JWT authentication
+│   ├── rate_limiter.py      # Usage limiting
+│   ├── error_handler.py     # Global error handling
+│   └── cors.py              # CORS configuration
+│
+├── config/                   # ⚙️ Configuration
+│   ├── settings.py          # Environment settings
+│   ├── constants.py         # Application constants
+│   └── logging_config.py    # Logging setup
+│
+├── utils/                    # 🔧 Utilities
+│   ├── validators.py        # Input validation helpers
+│   ├── formatters.py        # Data formatting
+│   └── storage.py           # File handling
+│
+├── research/                 # 📚 Intelligence Patterns
+│   ├── documents/           # Raw research files
+│   └── cache/               # Processed patterns
+│
+└── tests/                    # 🧪 Testing
+├── unit/                # Unit tests
+├── integration/         # Integration tests
+└── conftest.py          # Test configuration
+
+---
+
+## Layer Responsibilities
+
+### 1. API Layer (`/api`)
+
+**Purpose**: HTTP interface and contract definition
+
+- **Routes**: RESTful endpoint definitions
+- **Schemas**: Request/response validation using Pydantic
+- **Dependencies**: Reusable FastAPI dependencies (auth, rate limiting)
+
+**Pattern**: Clean separation of HTTP concerns from business logic
+
+### 2. Service Layer (`/services`)
+
+**Purpose**: Business logic and orchestration
+
+- **BaseService**: Abstract class providing common operations
+- **Domain Services**: Each service handles one domain (names, logos, etc.)
+- **PackageService**: Orchestrates multiple services for complete packages
+
+**Patterns**:
+- Service Layer Pattern
+- Template Method (BaseService)
+- Facade (PackageService)
+
+### 3. Core Components (`/core`)
+
+**Purpose**: Shared infrastructure components
+
+- **AIManager**: Singleton managing all AI operations (text & image)
+- **ResearchLoader**: Loads and caches intelligence patterns
+- **FailoverManager**: Multi-provider failover with health tracking
+- **Exceptions**: Hierarchical custom exceptions
+
+**Patterns**:
+- Singleton (AIManager)
+- Strategy (FailoverManager)
+- Cache-aside (ResearchLoader)
+
+### 4. Database Layer (`/database`)
+
+**Purpose**: Data persistence abstraction
+
+- **Client**: Supabase connection management
+- **Models**: SQLAlchemy/Pydantic models
+- **Repositories**: Data access abstraction
+
+**Pattern**: Repository Pattern - services don't know about SQL
+
+### 5. Middleware Layer (`/middleware`)
+
+**Purpose**: Cross-cutting concerns
+
+- **Authentication**: JWT token validation
+- **Rate Limiting**: Usage quota enforcement
+- **Error Handling**: Consistent error responses
+- **CORS**: Cross-origin configuration
+
+**Pattern**: Chain of Responsibility
+
+---
+
+## Key Architectural Decisions
+
+### 1. Layered Monolith
+- **Why**: Faster MVP development, simpler deployment
+- **Future**: Can extract to microservices when needed
+
+### 2. Service Pattern
+- **Why**: Business logic isolation, testability
+- **Implementation**: Each service inherits BaseService
+
+### 3. Repository Pattern
+- **Why**: Database abstraction, easier testing
+- **Implementation**: Services use repositories, not direct DB
+
+### 4. Dependency Injection
+- **Why**: Loose coupling, testability
+- **Implementation**: FastAPI's Depends() system
+
+### 5. AI Manager Singleton
+- **Why**: Centralized AI operations, resource management
+- **Implementation**: Single instance manages all AI providers
+
+### 6. Failover Strategy
+- **Why**: High availability across multiple AI providers
+- **Implementation**: Automatic failover with health tracking
+
+---
+
+## Data Flow
+
+### Standard Generation Flow
+
+Request → API Route
+→ Middleware (Auth, Rate Limit)
+→ Schema Validation
+→ Service Layer
+→ Research Loader (get patterns)
+→ AI Manager (generate content)
+→ Repository (save results)
+→ Response Schema
+→ Client
+
+
+### Package Generation Flow (Orchestrated)
+
+PackageService receives request
+→ NameService (generate names)
+→ DomainService (check availability)
+→ Parallel:
+
+LogoService (generate logos)
+ColorService (generate palettes)
+TaglineService (generate taglines)
+
+
+→ Aggregate results
+→ Save to database
+→ Return complete package
+
+
+---
+
+## Configuration Strategy
+
+### Environment Variables
+- **Database**: Supabase URL, keys
+- **AI APIs**: Provider keys and URLs
+- **Rate Limits**: Generation quotas
+- **Security**: JWT secrets
+
+### Dynamic Configuration
+- **AI Models**: Configurable per environment
+- **Failover Order**: Adjustable provider priority
+- **Cache TTL**: Research pattern cache duration
+
+---
+
+## Error Handling Strategy
+
+### Exception Hierarchy
+BrandGeneratorException (Base)
+├── AuthenticationError
+├── RateLimitExceeded
+├── ValidationError
+├── GenerationError
+│   ├── AIGenerationError
+│   └── ImageGenerationError
+├── DatabaseError
+└── ServiceUnavailableError
+
+### Error Response Format
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable message",
+  "details": { ... }
+}
+
+Security Considerations
+
+Authentication: JWT tokens via Supabase
+Input Validation: Pydantic schemas on all inputs
+Rate Limiting: Per-user generation quotas
+API Key Management: Environment variables only
+CORS: Configured for frontend origin
+
+
+Testing Strategy
+
+Unit Tests: Service logic isolation
+Integration Tests: API endpoint testing
+Mocking: AI responses for predictable tests
+Fixtures: Shared test data
+
+
+Deployment Considerations
+
+Single Container: Entire backend in one Docker container
+Environment-based Config: Dev/Staging/Production
+Health Checks: /api/health for monitoring
+Graceful Shutdown: Cleanup on termination
+
+
+Extension Points
+Adding New Generation Types
+
+Create new service inheriting BaseService
+Add route in /api/routes/
+Add schemas for request/response
+Update PackageService if part of packages
+
+Adding New AI Providers
+
+Update AIManager with new provider logic
+Add to FailoverManager provider list
+Configure via environment variables
+
+Adding New Storage Backends
+
+Implement storage interface
+Update database/client.py
+Configure via settings
+
+
+Performance Optimizations
+
+Async/Await: All I/O operations
+Connection Pooling: Database connections
+Pattern Caching: 7-day research cache
+Parallel Generation: Multiple AI calls
+Lazy Loading: Research patterns on demand
+
+
+Monitoring Points
+
+Health Endpoint: Service status
+Metrics: Generation counts, AI usage
+Error Tracking: Structured logging
+Performance: Response time tracking
