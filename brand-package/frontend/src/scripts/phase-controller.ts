@@ -84,7 +84,7 @@ export class PhaseController {
     }
     
     try {
-      this.stateManager.startPhase('names');
+      this.stateManager.updatePhase('names', { status: 'in_progress' });
       this.showLoader('Generating business names...', 'AI is creating unique options');
       
       // Call API
@@ -267,15 +267,15 @@ export class PhaseController {
     const businessName = this.stateManager.getBusinessName();
     
     try {
-      this.stateManager.startPhase('logoPreferences');
+      this.stateManager.updatePhase('logoPreferences', { status: 'in_progress' });
       
       this.showLoader('Analyzing your brand...', 'AI is suggesting logo styles and colors');
       
       // Call AI preference analyzer
       const suggestions = await apiClient.analyzePreferences({
         description: session.input.description,
-        business_name: businessName || undefined,
-        for: 'logo'
+        business_name: businessName || 'Unnamed Business',
+        for_type: 'logo'
       });
       
       this.stateManager.updatePhase('logoPreferences', {
@@ -296,47 +296,56 @@ export class PhaseController {
    * Generate logos
    */
   async generateLogos(): Promise<void> {
-    const session = this.getSession();
+    const session = this.stateManager.getSession();
     const businessName = this.stateManager.getBusinessName();
-    const prefs = session.phases.logoPreferences.userChoice;
+    
+    // Check αν έχουμε ήδη logos
+    if (session.phases.logos.generatedOptions.length > 0) {
+      console.log('Logos already generated, skipping...');
+      return;
+    }
     
     if (!businessName) {
       this.showError('Business name is required for logo generation');
       return;
     }
     
-    if (!prefs) {
-      this.showError('Logo preferences are required');
-      return;
-    }
+    // Πάρε τα preferences από το logoPreferences phase
+    const logoPrefs = session.phases.logoPreferences;
+    const style = logoPrefs?.userChoice?.style || logoPrefs?.aiSuggestions?.style || 'modern';
+    const userColors = logoPrefs?.userChoice?.colors || [];
+    const aiColors = logoPrefs?.aiSuggestions?.colors || [];
+    
+    // Convert ColorSuggestion[] to string[] if needed
+    const colors = userColors.length > 0 
+      ? (typeof userColors[0] === 'string' ? userColors : userColors.map((c: any) => c.hex || c.color || c))
+      : (aiColors.length > 0 
+        ? (typeof aiColors[0] === 'string' ? aiColors : aiColors.map((c: any) => c.hex || c.color || c))
+        : []);
+    
+    this.showLoader('Generating logo concepts...');
     
     try {
-      this.stateManager.startPhase('logos');
-      
-      this.showLoader(
-        `Creating logo concepts for "${businessName}"...`,
-        'This may take 30-60 seconds'
-      );
-      
       const result = await apiClient.generateLogos({
-        description: session.input.description,
         business_name: businessName,
-        style: prefs.style,
-        colors: prefs.colors
+        description: session.input.description,
+        style: style,
+        colors: colors
       });
       
       this.stateManager.updatePhase('logos', {
-        generatedOptions: result.logos,
-        generationId: result.generation_id
+        status: 'completed',
+        generatedOptions: result.logos
       });
       
       this.hideLoader();
-      window.dispatchEvent(new CustomEvent('phase-data-ready'));
-      
+      window.dispatchEvent(new CustomEvent('phase-changed', { 
+        detail: { phase: 'logos' } 
+      }));
     } catch (error) {
-      this.hideLoader();
-      this.showError('Failed to generate logos: ' + (error as Error).message);
       console.error('Logo generation error:', error);
+      this.showError('Failed to generate logos: ' + (error as Error).message);
+      this.hideLoader();
     }
   }
   
@@ -348,14 +357,14 @@ export class PhaseController {
     const businessName = this.stateManager.getBusinessName();
     
     try {
-      this.stateManager.startPhase('taglinePreferences');
+      this.stateManager.updatePhase('taglinePreferences', { status: 'in_progress' });
       
       this.showLoader('Analyzing your brand voice...');
       
       const suggestions = await apiClient.analyzePreferences({
         description: session.input.description,
-        business_name: businessName || undefined,
-        for: 'tagline'
+        business_name: businessName || 'Unnamed Business',
+        for_type: 'tagline'
       });
       
       this.stateManager.updatePhase('taglinePreferences', {
@@ -386,7 +395,7 @@ export class PhaseController {
     }
     
     try {
-      this.stateManager.startPhase('taglines');
+      this.stateManager.updatePhase('taglines', { status: 'in_progress' });
       
       this.showLoader(`Creating taglines for "${businessName}"...`);
       
@@ -488,6 +497,84 @@ export class PhaseController {
     if (loader) {
       loader.classList.add('hidden');
     }
+  }
+  
+  /**
+   * Select a logo
+   */
+  selectLogo(logoId: string): void {
+    const session = this.stateManager.getSession();
+    const logo = session.phases.logos.generatedOptions.find(l => l.id === logoId);
+    
+    if (!logo) {
+      this.showError('Logo not found');
+      return;
+    }
+    
+    this.stateManager.updatePhase('logos', {
+      selectedLogo: logo
+    });
+    
+    // Update UI
+    document.querySelectorAll('.logo-card').forEach(card => {
+      card.classList.remove('selected');
+    });
+    document.querySelector(`[data-logo-id="${logoId}"]`)?.classList.add('selected');
+    
+    // Enable continue button
+    const continueBtn = document.getElementById('continue-btn');
+    if (continueBtn) {
+      continueBtn.removeAttribute('disabled');
+    }
+    
+    // Update preview
+    window.dispatchEvent(new CustomEvent('phase-data-ready'));
+  }
+
+    /**
+   * Download a logo
+   */
+  async downloadLogo(logoId: string): Promise<void> {
+    const session = this.stateManager.getSession();
+    const logo = session.phases.logos.generatedOptions.find((l: any) => l.id === logoId);
+    
+    if (!logo) {
+      this.showError('Logo not found');
+      return;
+    }
+    
+    // Get the best quality URL
+    const url = logo.urls?.png || logo.urls?.jpg || logo.urls?.svg;
+    if (!url) {
+      this.showError('No download URL available');
+      return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${this.stateManager.getBusinessName()}-logo.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    this.showToast('Logo download started', 'success');
+  }
+
+  /**
+   * Show toast helper
+   */
+  private showToast(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type} show`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   }
   
   /**

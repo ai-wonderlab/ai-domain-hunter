@@ -2,7 +2,8 @@
 Generation API Routes
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional, Literal
+from pydantic import BaseModel
 
 from api.schemas.request_schemas import (
     GenerateNamesRequest,
@@ -22,6 +23,23 @@ from api.schemas.response_schemas import (
     GenerateTaglinesResponse,
     GeneratePackageResponse
 )
+
+# Preferences analysis schemas
+class AnalyzePreferencesRequest(BaseModel):
+    """Request for preferences analysis"""
+    business_name: str
+    description: str
+    for_type: Literal["logo", "tagline"]
+    industry: Optional[str] = None
+
+class AnalyzePreferencesResponse(BaseModel):
+    """Response for preferences analysis"""
+    success: bool
+    style: str
+    colors: List[str]
+    reasoning: str
+    suggestions: Dict[str, Any]
+
 from api.dependencies import get_current_user, check_rate_limit
 from services.name_service import NameService
 from services.domain_service import DomainService
@@ -446,4 +464,55 @@ async def regenerate_component(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to regenerate {component}"
+        )
+
+@router.post("/analyze/preferences", response_model=AnalyzePreferencesResponse)
+async def analyze_preferences(
+    request: AnalyzePreferencesRequest,
+    user_id: str = Depends(get_current_user)
+) -> AnalyzePreferencesResponse:
+    """AI analyzes business and suggests preferences"""
+    try:
+        from core.ai_manager import AIManager
+        ai_manager = AIManager()
+        
+        if request.for_type == "logo":
+            prompt = f"""Analyze this business and suggest logo design preferences.
+Business Name: {request.business_name}
+Description: {request.description}
+
+Return JSON with: style (modern/classic/playful/minimalist/bold/elegant), 
+colors (2-3 hex codes), icon_type (abstract/literal/lettermark/wordmark), 
+reasoning (2-3 sentences)"""
+        
+        result = await ai_manager.generate_text(
+            prompt=prompt,
+            model="claude-3-5-sonnet",
+            temperature=0.7
+        )
+        
+        import json
+        try:
+            suggestions = json.loads(result)
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to parse AI response: {result[:100]}")
+            suggestions = {
+                "style": "modern",
+                "colors": ["#2E86AB", "#FFFFFF"],
+                "icon_type": "abstract",
+                "reasoning": "Using default preferences due to parsing error"
+            }
+        
+        return AnalyzePreferencesResponse(
+            success=True,
+            style=suggestions.get("style", "modern"),
+            colors=suggestions.get("colors", ["#000000", "#FFFFFF"]),
+            reasoning=suggestions.get("reasoning", ""),
+            suggestions=suggestions
+        )
+    except Exception as e:
+        logger.error(f"Preferences analysis failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to analyze preferences"
         )

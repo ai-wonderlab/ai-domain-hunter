@@ -218,12 +218,25 @@ export class ApiClient {
     /**
      * Analyze preferences for logo/tagline
      */
-    async analyzePreferences(params: {
+    async analyzePreferences(data: {
+        business_name: string;
         description: string;
-        business_name?: string;
-        for: 'logo' | 'tagline';
+        for_type: 'logo' | 'tagline';
+        industry?: string;
     }): Promise<any> {
-        return this.post('/api/analyze/preferences', params);
+        const response = await fetch(`${this.baseUrl}/api/generate/analyze/preferences`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to analyze preferences');
+        }
+        
+        return response.json();
     }
   
   /**

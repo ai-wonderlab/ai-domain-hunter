@@ -825,13 +825,234 @@ export class PhaseRenderer {
     this.rightPanel.innerHTML = html;
   }
   
-  // Placeholder methods for other phases (to be implemented)
+  // Logo preferences and logos phase implementations
   private renderLogoPreferencesPhase(): void {
-    this.middlePanel.innerHTML = '<div class="phase-content">Logo Preferences Phase - Coming Soon</div>';
+    const session = this.stateManager.getSession();
+    const businessName = session.input.businessName || session.phases.names.selectedName;
+    
+    const html = `
+      <div class="phase-content">
+        <h2>Logo Style Preferences</h2>
+        <p>Let's define the visual identity for <strong>${businessName}</strong></p>
+        
+        <div id="ai-suggestions" class="suggestions-panel">
+          <div class="loader">
+            <div class="loader-text">AI analyzing your brand...</div>
+          </div>
+        </div>
+        
+        <div class="style-grid" id="style-grid" style="display: none;">
+          <h3>Choose a Logo Style</h3>
+          <div class="style-options">
+            ${['modern', 'classic', 'playful', 'minimalist', 'bold', 'elegant'].map(style => `
+              <label class="style-option">
+                <input type="radio" name="logo-style" value="${style}">
+                <div class="style-card">
+                  <span class="style-name">${style.charAt(0).toUpperCase() + style.slice(1)}</span>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <button class="primary-btn" id="continue-btn" disabled>
+            Generate Logos →
+          </button>
+        </div>
+      </div>
+    `;
+    
+    this.middlePanel.innerHTML = html;
+    this.initializeLogoPreferences();
+    this.setupLogoPreferencesListeners();
   }
   
   private renderLogosPhase(): void {
-    this.middlePanel.innerHTML = '<div class="phase-content">Logos Phase - Coming Soon</div>';
+    const session = this.stateManager.getSession();
+    const logos = session.phases.logos.generatedOptions || [];
+    
+    const html = `
+      <div class="phase-content">
+        <h2>Logo Concepts</h2>
+        
+        ${logos.length === 0 ? `
+          <div class="loader">
+            <div class="loader-text">Creating logo concepts...</div>
+          </div>
+        ` : `
+          <div class="logos-grid">
+            ${logos.map(logo => `
+              <div class="logo-card" data-logo-id="${logo.id}">
+                <img src="${logo.urls?.png || logo.urls?.jpg || '/placeholder-logo.png'}" 
+                     alt="${logo.concept_name}"
+                     onerror="this.src='/placeholder-logo.png'">
+                <h4>${logo.concept_name}</h4>
+                <div class="logo-actions">
+                  <button onclick="phaseController.selectLogo('${logo.id}')" class="primary-btn">
+                    Select
+                  </button>
+                  <button onclick="phaseController.downloadLogo('${logo.id}')" class="secondary-btn">
+                    Download
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    `;
+    
+    this.middlePanel.innerHTML = html;
+    
+    if (logos.length === 0) {
+      this.phaseController?.generateLogos();
+    } else {
+      // Add event listeners after rendering
+      setTimeout(() => {
+        document.querySelectorAll('.select-logo-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const logoId = (e.target as HTMLElement).dataset.logoId;
+            if (logoId && this.phaseController) {
+              this.phaseController.selectLogo(logoId);
+            }
+          });
+        });
+        
+        document.querySelectorAll('.download-logo-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const logoId = (e.target as HTMLElement).dataset.logoId;
+            if (logoId && this.phaseController) {
+              this.phaseController.downloadLogo(logoId);
+            }
+          });
+        });
+      }, 100);
+    }
+  }
+  
+  private async initializeLogoPreferences(): Promise<void> {
+    const session = this.stateManager.getSession();
+    const businessName = session.input.businessName || session.phases.names.selectedName;
+    
+    if (!businessName) {
+      console.error('No business name available for preferences analysis');
+      return;
+    }
+    
+    try {
+      // Import apiClient dynamically to avoid circular dependencies
+      const { apiClient } = await import('./api-client');
+      
+      const response = await apiClient.analyzePreferences({
+        business_name: businessName,
+        description: session.input.description,
+        for_type: 'logo'
+      });
+      
+      // Show suggestions
+      const suggestionsEl = document.getElementById('ai-suggestions');
+      if (suggestionsEl) {
+        suggestionsEl.innerHTML = `
+          <div class="ai-recommendation">
+            <h4>✨ AI Recommendation</h4>
+            <p>${response.reasoning}</p>
+            <div>Suggested: <strong>${response.style}</strong></div>
+          </div>
+        `;
+      }
+      
+      // Show style grid
+      const styleGridEl = document.getElementById('style-grid');
+      if (styleGridEl) {
+        styleGridEl.style.display = 'block';
+      }
+      
+      // Pre-select AI suggestion
+      const suggestedInput = document.querySelector(`input[value="${response.style}"]`) as HTMLInputElement;
+      if (suggestedInput) suggestedInput.checked = true;
+      
+      // Enable continue
+      const continueBtn = document.getElementById('continue-btn');
+      if (continueBtn) {
+        continueBtn.removeAttribute('disabled');
+      }
+      
+      // Save to state
+      this.stateManager.updatePhase('logoPreferences', {
+        status: 'completed',
+        aiSuggestions: response,
+        userChoice: {
+          style: response.style,
+          colors: response.colors,
+          customized: false
+        }
+      });
+    } catch (error) {
+      console.error('Failed to get preferences:', error);
+      
+      // Show error state
+      const suggestionsEl = document.getElementById('ai-suggestions');
+      if (suggestionsEl) {
+        suggestionsEl.innerHTML = `
+          <div class="ai-error">
+            <h4>⚠️ Unable to load AI suggestions</h4>
+            <p>Please select a style manually and continue.</p>
+          </div>
+        `;
+      }
+      
+      // Show style grid anyway
+      const styleGridEl = document.getElementById('style-grid');
+      if (styleGridEl) {
+        styleGridEl.style.display = 'block';
+      }
+      
+      // Enable continue button
+      const continueBtn = document.getElementById('continue-btn');
+      if (continueBtn) {
+        continueBtn.removeAttribute('disabled');
+      }
+    }
+  }
+  
+  /**
+   * Setup Logo Preferences Phase Listeners
+   */
+  private setupLogoPreferencesListeners(): void {
+    // Style selection
+    const styleOptions = document.querySelectorAll('input[name="logo-style"]');
+    styleOptions.forEach(option => {
+      option.addEventListener('change', (e) => {
+        const selectedStyle = (e.target as HTMLInputElement).value;
+        
+        // Update state
+        this.stateManager.updatePhase('logoPreferences', {
+          userChoice: {
+            style: selectedStyle,
+            colors: [], // Will be set when we implement color selection
+            customized: true
+          }
+        });
+        
+        // Enable continue button
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+          continueBtn.removeAttribute('disabled');
+        }
+      });
+    });
+    
+    // Continue button
+    const continueBtn = document.getElementById('continue-btn');
+    continueBtn?.addEventListener('click', () => {
+      this.stateManager.completePhase('logoPreferences');
+      const nextPhase = this.navigationManager.determineNextPhase();
+      if (nextPhase) {
+        this.navigationManager.goToPhase(nextPhase);
+        window.dispatchEvent(new CustomEvent('phase-changed', { detail: { phase: nextPhase } }));
+      }
+    });
   }
   
   private renderTaglinePreferencesPhase(): void {
