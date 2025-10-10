@@ -85,6 +85,12 @@ export interface StudioSession {
       generatedOptions: NameOption[];
       selectedName: string | null;
       generationId: string | null;
+      generationHistory: Array<{
+        timestamp: number;
+        description: string;  // What description was used
+        names: NameOption[];
+      }>;
+      lastGeneratedDescription?: string;
     };
     
     domains: {
@@ -95,6 +101,12 @@ export interface StudioSession {
       availableOptions: DomainOption[];
       selectedDomain: string | null;
       checkRounds: number;
+      generationHistory: Array<{
+        timestamp: number;
+        businessName: string;  // What name was used
+        domains: DomainOption[];
+      }>;
+      lastGeneratedBusinessName?: string;
     };
     
     logos: {
@@ -154,6 +166,12 @@ export interface StudioSession {
       generatedOptions: TaglineOption[];
       selectedTagline: string | null;
       generationId: string | null;
+      generationHistory: Array<{
+        timestamp: number;
+        preferences: any;  // What tone/preferences were used
+        taglines: TaglineOption[];
+      }>;
+      lastGeneratedPreferences?: any;
     };
   };
   
@@ -212,7 +230,9 @@ export class StateManager {
           completedAt: null,
           generatedOptions: [],
           selectedName: null,
-          generationId: null
+          generationId: null,
+          generationHistory: [],
+          lastGeneratedDescription: undefined
         },
         domains: {
           status: 'not_started',
@@ -221,7 +241,9 @@ export class StateManager {
           checkedVariations: [],
           availableOptions: [],
           selectedDomain: null,
-          checkRounds: 0
+          checkRounds: 0,
+          generationHistory: [],
+          lastGeneratedBusinessName: undefined
         },
         logoPreferences: {
           status: 'not_started',
@@ -253,7 +275,9 @@ export class StateManager {
           completedAt: null,
           generatedOptions: [],
           selectedTagline: null,
-          generationId: null
+          generationId: null,
+          generationHistory: [],
+          lastGeneratedPreferences: undefined
         }
       },
       

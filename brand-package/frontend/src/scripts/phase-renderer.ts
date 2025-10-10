@@ -88,6 +88,10 @@ export class PhaseRenderer {
         this.renderCompletePhase();
         break;
     }
+
+    if (phase !== 'initial') {
+      this.updatePreviewPanel();
+    }
   }
   
   /**
@@ -436,6 +440,7 @@ export class PhaseRenderer {
   private renderNamesPhase(): void {
     const session = this.stateManager.getSession();
     const names = session.phases.names.generatedOptions;
+    const history = session.phases.names.generationHistory || [];
     
     this.middlePanel.innerHTML = `
       <div class="phase-content fade-in">
@@ -449,6 +454,37 @@ export class PhaseRenderer {
         <div id="names-list" class="names-list">
           ${names.length === 0 ? this.renderLoadingState('Generating names...') : this.renderNameOptions(names)}
         </div>
+        
+        ${history.length > 0 ? `
+          <div class="phase-divider"></div>
+          <details class="history-section">
+            <summary>Previous Generations (${history.length})</summary>
+            ${history.slice().reverse().map((gen) => `
+              <div class="generation-group">
+                <h4>Generation from ${new Date(gen.timestamp).toLocaleString()}</h4>
+                <small class="generation-desc">Description: ${this.escapeHtml(gen.description.substring(0, 100))}${gen.description.length > 100 ? '...' : ''}</small>
+                <div class="names-list historical">
+                  ${gen.names.map(name => `
+                    <div class="name-option historical" data-name="${this.escapeHtml(name.name)}">
+                      <div class="name-content">
+                        <div class="name-header">
+                          <h3>${this.escapeHtml(name.name)}</h3>
+                          <span class="name-score">
+                            <span class="score-value">${name.score.toFixed(1)}</span>/10
+                          </span>
+                        </div>
+                        <p class="name-reasoning">${this.escapeHtml(name.reasoning)}</p>
+                        <button class="select-name-btn secondary-btn" data-name="${this.escapeHtml(name.name)}">
+                          Select This Name
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </details>
+        ` : ''}
         
         <div class="phase-divider"></div>
         
@@ -518,8 +554,8 @@ export class PhaseRenderer {
    * Setup Names Phase Listeners
    */
   private setupNamesPhaseListeners(): void {
-    // Name selection
-    const nameOptions = document.querySelectorAll('.name-option');
+    // Name selection (current and historical)
+    const nameOptions = document.querySelectorAll('.name-option:not(.historical)');
     nameOptions.forEach(option => {
       option.addEventListener('click', (e) => {
         const name = (e.currentTarget as HTMLElement).getAttribute('data-name');
@@ -531,7 +567,7 @@ export class PhaseRenderer {
         });
         
         // Update UI
-        nameOptions.forEach(opt => opt.classList.remove('selected'));
+        document.querySelectorAll('.name-option').forEach(opt => opt.classList.remove('selected'));
         (e.currentTarget as HTMLElement).classList.add('selected');
         
         // Enable continue button
@@ -540,6 +576,34 @@ export class PhaseRenderer {
         
         // Update preview
         this.updatePreviewPanel();
+      });
+    });
+    
+    // Historical name selection buttons
+    const selectNameBtns = document.querySelectorAll('.select-name-btn');
+    selectNameBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const name = (e.currentTarget as HTMLElement).getAttribute('data-name');
+        if (!name) return;
+        
+        // Update state
+        this.stateManager.updatePhase('names', {
+          selectedName: name
+        });
+        
+        // Update UI
+        document.querySelectorAll('.name-option').forEach(opt => opt.classList.remove('selected'));
+        
+        // Enable continue button
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn?.removeAttribute('disabled');
+        
+        // Update preview
+        this.updatePreviewPanel();
+        
+        // Show toast
+        this.showToast(`Selected "${name}" from previous generation`, 'success');
       });
     });
     
@@ -584,6 +648,7 @@ export class PhaseRenderer {
     private renderDomainsPhase(): void {
     const session = this.stateManager.getSession();
     const domains = session.phases.domains.availableOptions;
+    const history = session.phases.domains.generationHistory || [];
     
     this.middlePanel.innerHTML = `
         <div class="phase-content fade-in">
@@ -602,6 +667,38 @@ export class PhaseRenderer {
             <div class="domains-info">
             ℹ️ Checked ${session.phases.domains.checkedVariations.length} variations across ${session.phases.domains.checkRounds} rounds to find these 10
             </div>
+        ` : ''}
+        
+        ${history.length > 0 ? `
+          <div class="phase-divider"></div>
+          <details class="history-section">
+            <summary>Previous Checks (${history.length})</summary>
+            ${history.slice().reverse().map((gen) => `
+              <div class="generation-group">
+                <h4>Checked for "${this.escapeHtml(gen.businessName)}" - ${new Date(gen.timestamp).toLocaleString()}</h4>
+                <div class="domains-list historical">
+                  ${gen.domains.map(domain => `
+                    <div class="domain-option ${domain.available ? 'available' : 'unavailable'} historical" data-domain="${this.escapeHtml(domain.domain)}">
+                      <div class="domain-content">
+                        <div class="domain-header">
+                          <h4>${this.escapeHtml(domain.domain)}</h4>
+                          ${domain.available ? '<span class="badge available-badge">Available</span>' : '<span class="badge unavailable-badge">Taken</span>'}
+                        </div>
+                        <div class="domain-footer">
+                          <span class="domain-price">💰 ${this.escapeHtml(domain.price)}</span>
+                          ${domain.available ? `
+                            <button class="select-domain-btn secondary-btn" data-domain="${this.escapeHtml(domain.domain)}">
+                              Select This Domain
+                            </button>
+                          ` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </details>
         ` : ''}
         
         <!-- ✅ ADD THIS REGENERATE SECTION HERE -->
@@ -711,8 +808,8 @@ export class PhaseRenderer {
    * Setup Domains Phase Listeners
    */
   private setupDomainsPhaseListeners(): void {
-    // Domain selection
-    const domainOptions = document.querySelectorAll('.domain-option');
+    // Domain selection (current domains only)
+    const domainOptions = document.querySelectorAll('.domain-option:not(.historical)');
     domainOptions.forEach(option => {
       option.addEventListener('click', (e) => {
         const domain = (e.currentTarget as HTMLElement).getAttribute('data-domain');
@@ -724,7 +821,7 @@ export class PhaseRenderer {
         });
         
         // Update UI
-        domainOptions.forEach(opt => opt.classList.remove('selected'));
+        document.querySelectorAll('.domain-option').forEach(opt => opt.classList.remove('selected'));
         (e.currentTarget as HTMLElement).classList.add('selected');
         
         // Enable continue button
@@ -733,6 +830,34 @@ export class PhaseRenderer {
         
         // Update preview
         this.updatePreviewPanel();
+      });
+    });
+    
+    // Historical domain selection buttons
+    const selectDomainBtns = document.querySelectorAll('.select-domain-btn');
+    selectDomainBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const domain = (e.currentTarget as HTMLElement).getAttribute('data-domain');
+        if (!domain) return;
+        
+        // Update state
+        this.stateManager.updatePhase('domains', {
+          selectedDomain: domain
+        });
+        
+        // Update UI
+        document.querySelectorAll('.domain-option').forEach(opt => opt.classList.remove('selected'));
+        
+        // Enable continue button
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn?.removeAttribute('disabled');
+        
+        // Update preview
+        this.updatePreviewPanel();
+        
+        // Show toast
+        this.showToast(`Selected "${domain}" from previous check`, 'success');
       });
     });
     
@@ -774,11 +899,14 @@ export class PhaseRenderer {
     const session = this.stateManager.getSession();
     const businessName = this.stateManager.getBusinessName();
     const domain = session.phases.domains.selectedDomain;
+    const selectedLogo = session.phases.logos.selectedLogo;
+    const selectedTagline = session.phases.taglines.selectedTagline;
     
     let html = '<div class="preview-content">';
     
     html += '<h3>Your Brand Preview</h3>';
     
+    // Business Name
     if (businessName) {
       html += `
         <div class="preview-item">
@@ -788,6 +916,7 @@ export class PhaseRenderer {
       `;
     }
     
+    // Domain
     if (domain) {
       html += `
         <div class="preview-item">
@@ -797,7 +926,34 @@ export class PhaseRenderer {
       `;
     }
     
-    // Add tips based on selections
+    // Logo Preview
+    if (selectedLogo) {
+      const logoUrl = selectedLogo.urls?.png || selectedLogo.urls?.jpg || selectedLogo.urls?.svg;
+      if (logoUrl) {
+        html += `
+          <div class="preview-item">
+            <label>Logo:</label>
+            <div class="preview-logo">
+              <img src="${logoUrl}" alt="${this.escapeHtml(selectedLogo.concept_name)}" 
+                   style="max-width: 150px; max-height: 150px; border-radius: 8px;">
+              <small class="preview-logo-name">${this.escapeHtml(selectedLogo.concept_name)}</small>
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    // Tagline
+    if (selectedTagline) {
+      html += `
+        <div class="preview-item">
+          <label>Tagline:</label>
+          <div class="preview-value tagline">"${this.escapeHtml(selectedTagline)}"</div>
+        </div>
+      `;
+    }
+    
+    // Tips based on domain
     if (domain) {
       if (domain.endsWith('.com')) {
         html += `
@@ -822,6 +978,17 @@ export class PhaseRenderer {
           </div>
         `;
       }
+    }
+    
+    // If nothing selected yet
+    if (!businessName && !domain && !selectedLogo && !selectedTagline) {
+      html = `
+        <div class="preview-placeholder">
+          <div class="placeholder-icon">🎨</div>
+          <h3>Your Brand Preview</h3>
+          <p>Your selections will appear here</p>
+        </div>
+      `;
     }
     
     html += '</div>';
@@ -1068,7 +1235,7 @@ private getCompactDescription(style: string): string {
             <div class="phase-divider"></div>
             <details class="history-section">
               <summary>Previous Generations (${history.length})</summary>
-              ${history.reverse().map((gen, idx) => `
+              ${history.reverse().map((gen) => `
                 <div class="generation-group">
                   <h4>Generation from ${new Date(gen.timestamp).toLocaleString()}</h4>
                   <div class="logos-grid smaller">
@@ -1363,6 +1530,7 @@ private getCompactDescription(style: string): string {
     const customColors = (document.getElementById('custom-colors-input') as HTMLInputElement)?.value;
     const aiText = (document.getElementById('ai-recommendation-text') as HTMLTextAreaElement)?.value;
     
+    // ✅ SAVE preferences
     this.stateManager.updatePhase('logoPreferences', {
       userChoice: {
         styles: selectedStyles,
@@ -1372,6 +1540,24 @@ private getCompactDescription(style: string): string {
         customized: true
       }
     });
+    
+    // ✅ CRITICAL: Clear old logos to force regeneration
+    const session = this.stateManager.getSession();
+    if (session.phases.logos.generatedOptions.length > 0) {
+      console.log('🧹 Clearing old logos because preferences changed');
+      
+      // Save current logos to history first
+      if (this.phaseController) {
+        this.phaseController.saveCurrentGenerationToHistory('logos');
+      }
+      
+      // Clear current logos
+      this.stateManager.updatePhase('logos', {
+        generatedOptions: [],
+        selectedLogo: null,
+        status: 'not_started'
+      });
+    }
     
     // Continue to next phase
     this.stateManager.completePhase('logoPreferences');
@@ -1387,7 +1573,171 @@ private getCompactDescription(style: string): string {
   }
   
   private renderTaglinesPhase(): void {
-    this.middlePanel.innerHTML = '<div class="phase-content">Taglines Phase - Coming Soon</div>';
+    const session = this.stateManager.getSession();
+    const taglines = session.phases.taglines.generatedOptions || [];
+    const history = session.phases.taglines.generationHistory || [];
+    const businessName = this.stateManager.getBusinessName();
+    
+    this.middlePanel.innerHTML = `
+      <div class="phase-content fade-in">
+        <div class="phase-header">
+          <h2>💬 Choose Your Tagline</h2>
+          <p>Perfect taglines for "${this.escapeHtml(businessName || '')}"</p>
+        </div>
+        
+        <div class="phase-divider"></div>
+        
+        <div id="taglines-list" class="taglines-list">
+          ${taglines.length === 0 ? this.renderLoadingState('Creating taglines...') : this.renderTaglineOptions(taglines)}
+        </div>
+        
+        ${history.length > 0 ? `
+          <div class="phase-divider"></div>
+          <details class="history-section">
+            <summary>Previous Generations (${history.length})</summary>
+            ${history.slice().reverse().map((gen) => `
+              <div class="generation-group">
+                <h4>Generation from ${new Date(gen.timestamp).toLocaleString()}</h4>
+                <small class="generation-desc">Tone: ${this.escapeHtml(gen.preferences?.tone || 'N/A')}</small>
+                <div class="taglines-list historical">
+                  ${gen.taglines.map(tagline => `
+                    <div class="tagline-option historical" data-tagline="${this.escapeHtml(tagline.text)}">
+                      <div class="tagline-content">
+                        <span class="tagline-text">"${this.escapeHtml(tagline.text)}"</span>
+                        ${tagline.tone ? `<span class="tagline-tone">${this.escapeHtml(tagline.tone)}</span>` : ''}
+                        ${tagline.reasoning ? `<p class="tagline-reasoning">${this.escapeHtml(tagline.reasoning)}</p>` : ''}
+                        <button class="select-tagline-btn secondary-btn" data-tagline="${this.escapeHtml(tagline.text)}">
+                          Select This Tagline
+                        </button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </details>
+        ` : ''}
+        
+        <div class="phase-divider"></div>
+        
+        <div class="phase-actions">
+          <button id="back-btn" class="secondary-btn">
+            ← Back
+          </button>
+          <button id="continue-btn" class="primary-btn gradient-btn" ${!session.phases.taglines.selectedTagline ? 'disabled' : ''}>
+            Continue →
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Generate taglines if none exist
+    if (taglines.length === 0 && this.phaseController) {
+      this.phaseController.generateTaglines();
+    }
+    
+    this.setupTaglinesPhaseListeners();
+    this.updatePreviewPanel();
+  }
+  
+  /**
+   * Render tagline options
+   */
+  private renderTaglineOptions(taglines: any[]): string {
+    const session = this.stateManager.getSession();
+    const selected = session.phases.taglines.selectedTagline;
+    
+    return taglines.map(tagline => `
+      <label class="tagline-option ${selected === tagline.text ? 'selected' : ''}" data-tagline="${this.escapeHtml(tagline.text)}">
+        <input 
+          type="radio" 
+          name="selected-tagline" 
+          value="${this.escapeHtml(tagline.text)}"
+          ${selected === tagline.text ? 'checked' : ''}
+        >
+        <div class="tagline-content">
+          <span class="tagline-text">"${this.escapeHtml(tagline.text)}"</span>
+          ${tagline.tone ? `<span class="tagline-tone">${this.escapeHtml(tagline.tone)}</span>` : ''}
+          ${tagline.reasoning ? `<p class="tagline-reasoning">${this.escapeHtml(tagline.reasoning)}</p>` : ''}
+        </div>
+      </label>
+    `).join('');
+  }
+  
+  /**
+   * Setup Taglines Phase Listeners
+   */
+  private setupTaglinesPhaseListeners(): void {
+    // Tagline selection (current taglines only)
+    const taglineOptions = document.querySelectorAll('.tagline-option:not(.historical)');
+    taglineOptions.forEach(option => {
+      option.addEventListener('click', (e) => {
+        const tagline = (e.currentTarget as HTMLElement).getAttribute('data-tagline');
+        if (!tagline) return;
+        
+        // Update state
+        this.stateManager.updatePhase('taglines', {
+          selectedTagline: tagline
+        });
+        
+        // Update UI
+        document.querySelectorAll('.tagline-option').forEach(opt => opt.classList.remove('selected'));
+        (e.currentTarget as HTMLElement).classList.add('selected');
+        
+        // Enable continue button
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn?.removeAttribute('disabled');
+        
+        // Update preview
+        this.updatePreviewPanel();
+      });
+    });
+    
+    // Historical tagline selection buttons
+    const selectTaglineBtns = document.querySelectorAll('.select-tagline-btn');
+    selectTaglineBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const tagline = (e.currentTarget as HTMLElement).getAttribute('data-tagline');
+        if (!tagline) return;
+        
+        // Update state
+        this.stateManager.updatePhase('taglines', {
+          selectedTagline: tagline
+        });
+        
+        // Update UI
+        document.querySelectorAll('.tagline-option').forEach(opt => opt.classList.remove('selected'));
+        
+        // Enable continue button
+        const continueBtn = document.getElementById('continue-btn');
+        continueBtn?.removeAttribute('disabled');
+        
+        // Update preview
+        this.updatePreviewPanel();
+        
+        // Show toast
+        this.showToast(`Selected tagline from previous generation`, 'success');
+      });
+    });
+    
+    // Back button
+    const backBtn = document.getElementById('back-btn');
+    backBtn?.addEventListener('click', () => {
+      this.navigationManager.goBack();
+      window.dispatchEvent(new CustomEvent('phase-changed'));
+    });
+    
+    // Continue button
+    const continueBtn = document.getElementById('continue-btn');
+    continueBtn?.addEventListener('click', () => {
+      this.stateManager.completePhase('taglines');
+      const nextPhase = this.navigationManager.determineNextPhase();
+      if (nextPhase) {
+        this.navigationManager.goToPhase(nextPhase);
+        window.dispatchEvent(new CustomEvent('phase-changed', { detail: { phase: nextPhase } }));
+      }
+    });
   }
   
   private renderCompletePhase(): void {

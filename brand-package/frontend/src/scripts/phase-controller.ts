@@ -11,10 +11,8 @@ export class PhaseController {
   private stateManager: StateManager;
   private navigationManager: NavigationManager;
   
-  // DOMAIN FIX: Track what business name was used for domain generation
+  // Track what was used for last generation
   private lastDomainGenerationName: string | null = null;
-  
-  // NAMES FIX: Track what description was used for names generation
   private lastNamesGenerationDesc: string | null = null;
   
   constructor(stateManager: StateManager, navigationManager: NavigationManager) {
@@ -28,18 +26,132 @@ export class PhaseController {
   getSession() {
     return this.stateManager.getSession();
   }
+
+  /**
+   * ✅ SAVE CURRENT GENERATION TO HISTORY (Universal Method)
+   * Καλείται ΠΑΝΤΑ πριν:
+   * - Navigate away from a phase
+   * - Regenerate
+   * - Change selections
+   */
+  saveCurrentGenerationToHistory(phase: PhaseType): void {
+    const session = this.getSession();
+    
+    switch (phase) {
+      case 'names':
+        const namesData = session.phases.names;
+        if (namesData.generatedOptions.length > 0) {
+          const history = namesData.generationHistory || [];
+          
+          // Check if already saved (avoid duplicates)
+          const alreadySaved = history.some(
+            h => h.timestamp > Date.now() - 5000 && 
+                 h.names.length === namesData.generatedOptions.length
+          );
+          
+          if (!alreadySaved) {
+            history.push({
+              timestamp: Date.now(),
+              description: namesData.lastGeneratedDescription || session.input.description,
+              names: [...namesData.generatedOptions] // Deep copy
+            });
+            
+            console.log(`✅ Saved ${namesData.generatedOptions.length} names to history`);
+            
+            this.stateManager.updatePhase('names', {
+              generationHistory: history
+            });
+          }
+        }
+        break;
+        
+      case 'domains':
+        const domainsData = session.phases.domains;
+        if (domainsData.availableOptions.length > 0) {
+          const history = domainsData.generationHistory || [];
+          
+          const alreadySaved = history.some(
+            h => h.timestamp > Date.now() - 5000 && 
+                 h.domains.length === domainsData.availableOptions.length
+          );
+          
+          if (!alreadySaved) {
+            history.push({
+              timestamp: Date.now(),
+              businessName: domainsData.lastGeneratedBusinessName || this.stateManager.getBusinessName() || '',
+              domains: [...domainsData.availableOptions]
+            });
+            
+            console.log(`✅ Saved ${domainsData.availableOptions.length} domains to history`);
+            
+            this.stateManager.updatePhase('domains', {
+              generationHistory: history
+            });
+          }
+        }
+        break;
+        
+      case 'logos':
+        const logosData = session.phases.logos;
+        if (logosData.generatedOptions.length > 0) {
+          const history = logosData.generationHistory || [];
+          
+          const alreadySaved = history.some(
+            h => h.timestamp > Date.now() - 5000 && 
+                 h.logos.length === logosData.generatedOptions.length
+          );
+          
+          if (!alreadySaved) {
+            history.push({
+              timestamp: Date.now(),
+              preferences: logosData.lastGeneratedPreferences,
+              logos: [...logosData.generatedOptions]
+            });
+            
+            console.log(`✅ Saved ${logosData.generatedOptions.length} logos to history`);
+            
+            this.stateManager.updatePhase('logos', {
+              generationHistory: history
+            });
+          }
+        }
+        break;
+        
+      case 'taglines':
+        const taglinesData = session.phases.taglines;
+        if (taglinesData.generatedOptions.length > 0) {
+          const history = taglinesData.generationHistory || [];
+          
+          const alreadySaved = history.some(
+            h => h.timestamp > Date.now() - 5000 && 
+                 h.taglines.length === taglinesData.generatedOptions.length
+          );
+          
+          if (!alreadySaved) {
+            history.push({
+              timestamp: Date.now(),
+              preferences: taglinesData.lastGeneratedPreferences,
+              taglines: [...taglinesData.generatedOptions]
+            });
+            
+            console.log(`✅ Saved ${taglinesData.generatedOptions.length} taglines to history`);
+            
+            this.stateManager.updatePhase('taglines', {
+              generationHistory: history
+            });
+          }
+        }
+        break;
+    }
+  }
   
   /**
    * Start generation workflow
    */
   async startWorkflow(): Promise<void> {
-    // Determine first phase
     const nextPhase = this.navigationManager.getNextPhaseFromInitial();
-    
-    // Navigate to first phase
     this.navigationManager.goToPhase(nextPhase);
     
-    // Trigger the appropriate generation
     switch (nextPhase) {
       case 'names':
         await this.generateNames();
@@ -62,18 +174,22 @@ export class PhaseController {
   async generateNames(): Promise<void> {
     const session = this.getSession();
     
-    // NAMES FIX: Check if description has changed since last generation
     const descChanged = this.lastNamesGenerationDesc !== null && 
                        this.lastNamesGenerationDesc !== session.input.description;
     
-    // Clear old names if description changed
-    if (descChanged) {
-      console.log(`Description changed from "${this.lastNamesGenerationDesc}" to "${session.input.description}". Clearing old names...`);
-      this.stateManager.updatePhase('names', {
-        generatedOptions: [],
-        selectedName: null,
-        status: 'not_started'
-      });
+    // ✅ SAVE TO HISTORY πριν κάνεις οτιδήποτε
+    if (session.phases.names.generatedOptions.length > 0) {
+      this.saveCurrentGenerationToHistory('names');
+      
+      // Αν άλλαξε description, CLEAR current options
+      if (descChanged) {
+        console.log(`Description changed, clearing current names...`);
+        this.stateManager.updatePhase('names', {
+          generatedOptions: [],
+          selectedName: null,
+          status: 'not_started'
+        });
+      }
     }
     
     // Skip if already generated for this description
@@ -87,20 +203,19 @@ export class PhaseController {
       this.stateManager.updatePhase('names', { status: 'in_progress' });
       this.showLoader('Generating business names...', 'AI is creating unique options');
       
-      // Call API
       const result = await apiClient.generateNames({
         description: session.input.description,
         industry: undefined,
         style: undefined
       });
       
-      // STORE THE DESCRIPTION USED FOR THIS GENERATION
       this.lastNamesGenerationDesc = session.input.description;
       
       this.stateManager.updatePhase('names', {
         generatedOptions: result.names,
         generationId: result.generation_id,
-        status: 'completed'
+        status: 'completed',
+        lastGeneratedDescription: session.input.description
       });
       
       this.hideLoader();
@@ -113,30 +228,31 @@ export class PhaseController {
       console.error('Name generation error:', error);
     }
   }
-  
+
   /**
    * Regenerate names with feedback
    */
   async regenerateNames(feedback: string): Promise<void> {
     const session = this.getSession();
     
+    // ✅ SAVE TO HISTORY FIRST
+    this.saveCurrentGenerationToHistory('names');
+    
     try {
       this.showLoader('Regenerating names...', 'Applying your feedback');
       
-            // Call same endpoint, append feedback to description
       const result = await apiClient.generateNames({
         description: `${session.input.description}\n\nUser feedback: ${feedback}`,
         industry: undefined,
         style: undefined
       });
       
-      // STORE THE DESCRIPTION USED FOR THIS GENERATION
       this.lastNamesGenerationDesc = session.input.description;
       
-      // Update state with new results
       this.stateManager.updatePhase('names', {
         generatedOptions: result.names,
-        generationId: result.generation_id
+        generationId: result.generation_id,
+        lastGeneratedDescription: session.input.description
       });
       
       this.hideLoader();
@@ -147,9 +263,9 @@ export class PhaseController {
       this.showError('Failed to regenerate: ' + (error as Error).message);
     }
   }
-  
+
   /**
-   * Generate/find available domains - WITH DOMAIN FIX
+   * Generate/find available domains
    */
   async generateDomains(): Promise<void> {
     const session = this.getSession();
@@ -160,20 +276,24 @@ export class PhaseController {
       throw new Error('No business name selected');
     }
 
-    // DOMAIN FIX: Check if business name has changed since last generation
     const nameHasChanged = this.lastDomainGenerationName !== null && 
                           this.lastDomainGenerationName !== businessName;
     
-    // Clear old domains if name changed
-    if (nameHasChanged) {
-      console.log(`Business name changed from "${this.lastDomainGenerationName}" to "${businessName}". Clearing old domains...`);
-      this.stateManager.updatePhase('domains', {
-        availableOptions: [],
-        checkedVariations: [],
-        checkRounds: 0,
-        selectedDomain: null,
-        status: 'not_started'
-      });
+    // ✅ SAVE TO HISTORY πριν κάνεις οτιδήποτε
+    if (session.phases.domains.availableOptions.length > 0) {
+      this.saveCurrentGenerationToHistory('domains');
+      
+      // Αν άλλαξε name, CLEAR current options
+      if (nameHasChanged) {
+        console.log(`Business name changed, clearing current domains...`);
+        this.stateManager.updatePhase('domains', {
+          availableOptions: [],
+          checkedVariations: [],
+          checkRounds: 0,
+          selectedDomain: null,
+          status: 'not_started'
+        });
+      }
     }
 
     // Skip if already have domains for this name
@@ -192,16 +312,14 @@ export class PhaseController {
         description: session.input.description
       });
 
-      console.log('Domain generation result:', result);
-
-      // DOMAIN FIX: Store the name used for this generation
       this.lastDomainGenerationName = businessName;
 
       this.stateManager.updatePhase('domains', {
         availableOptions: result.results,
         checkedVariations: [],
         checkRounds: result.rounds || 1,
-        status: 'completed'
+        status: 'completed',
+        lastGeneratedBusinessName: businessName
       });
       
       this.hideLoader();
@@ -226,13 +344,14 @@ export class PhaseController {
       throw new Error('No business name selected');
     }
     
+    // ✅ SAVE TO HISTORY FIRST
+    this.saveCurrentGenerationToHistory('domains');
+    
     try {
       this.showLoader('Generating new domains...', 'Applying your feedback');
       
-      // Get already checked domains to exclude
       const checkedDomains = session.phases.domains.availableOptions.map((d: any) => d.domain);
       
-      // Call regenerate endpoint with feedback
       const result = await apiClient.regenerateDomains({
         business_name: businessName,
         description: session.input.description,
@@ -240,14 +359,13 @@ export class PhaseController {
         exclude_domains: checkedDomains
       });
       
-      // DOMAIN FIX: Update the last generation name
       this.lastDomainGenerationName = businessName;
       
-      // Update state with new results
       this.stateManager.updatePhase('domains', {
         availableOptions: result.results,
         checkedVariations: session.phases.domains.checkedVariations,
-        checkRounds: (session.phases.domains.checkRounds || 1) + 1
+        checkRounds: (session.phases.domains.checkRounds || 1) + 1,
+        lastGeneratedBusinessName: businessName
       });
       
       this.hideLoader();
@@ -271,7 +389,6 @@ export class PhaseController {
       
       this.showLoader('Analyzing your brand...', 'AI is suggesting logo styles and colors');
       
-      // Call AI preference analyzer
       const suggestions = await apiClient.analyzePreferences({
         description: session.input.description,
         business_name: businessName || 'Unnamed Business',
@@ -295,6 +412,9 @@ export class PhaseController {
   /**
    * Generate logos
    */
+  /**
+   * Generate logos
+   */
   async generateLogos(): Promise<void> {
     const session = this.stateManager.getSession();
     const businessName = this.stateManager.getBusinessName();
@@ -307,13 +427,11 @@ export class PhaseController {
     const logoPrefs = session.phases.logoPreferences;
     const userChoice = logoPrefs?.userChoice || {};
     
-    // Collect current preferences
     const selectedStyles = userChoice.styles || [];
     const customStyle = userChoice.customStyle || '';
     const customColors = userChoice.customColors || '';
     const aiText = userChoice.aiText || '';
     
-    // Create preference fingerprint
     const currentPreferences = {
       styles: selectedStyles,
       customStyle: customStyle,
@@ -321,13 +439,21 @@ export class PhaseController {
       aiText: aiText
     };
     
-    // Check if preferences changed
     const lastPrefs = session.phases.logos.lastGeneratedPreferences;
     const preferencesChanged = JSON.stringify(currentPreferences) !== JSON.stringify(lastPrefs);
     
-    // Skip if same preferences and we have logos
-    if (!preferencesChanged && session.phases.logos.generatedOptions.length > 0) {
-      console.log('Preferences unchanged, showing existing logos...');
+    // ✅ If no logos exist, generate
+    if (session.phases.logos.generatedOptions.length === 0) {
+      console.log('No logos exist, generating...');
+    }
+    // ✅ If preferences changed, save to history and regenerate
+    else if (preferencesChanged) {
+      console.log('Preferences changed, regenerating logos...');
+      this.saveCurrentGenerationToHistory('logos');
+    }
+    // ✅ If preferences unchanged and we have logos, SKIP
+    else {
+      console.log('✓ Preferences unchanged, showing existing logos');
       return;
     }
     
@@ -353,25 +479,10 @@ export class PhaseController {
         colors: []
       });
       
-      // Save to history if we had previous logos
-      if (session.phases.logos.generatedOptions.length > 0) {
-        const history = session.phases.logos.generationHistory || [];
-        history.push({
-          timestamp: Date.now(),
-          preferences: lastPrefs,
-          logos: session.phases.logos.generatedOptions
-        });
-        
-        this.stateManager.updatePhase('logos', {
-          generationHistory: history
-        });
-      }
-      
-      // Update with new logos
       this.stateManager.updatePhase('logos', {
         status: 'completed',
         generatedOptions: result.logos,
-        lastGeneratedPreferences: currentPreferences // Save current preferences
+        lastGeneratedPreferences: currentPreferences
       });
       
       this.hideLoader();
@@ -430,6 +541,15 @@ export class PhaseController {
       return;
     }
     
+    const currentPreferences = {
+      tone: prefs?.tone || 'professional'
+    };
+    
+    // ✅ SAVE TO HISTORY πριν κάνεις οτιδήποτε
+    if (session.phases.taglines.generatedOptions.length > 0) {
+      this.saveCurrentGenerationToHistory('taglines');
+    }
+    
     try {
       this.stateManager.updatePhase('taglines', { status: 'in_progress' });
       
@@ -443,7 +563,8 @@ export class PhaseController {
       
       this.stateManager.updatePhase('taglines', {
         generatedOptions: result.taglines,
-        generationId: result.generation_id
+        generationId: result.generation_id,
+        lastGeneratedPreferences: currentPreferences
       });
       
       this.hideLoader();
@@ -460,7 +581,12 @@ export class PhaseController {
    * Navigate to a specific phase
    */
   async navigateToPhase(phase: PhaseType) {
-    // DOMAIN FIX: Check if name changed when navigating to domains
+    // ✅ SAVE CURRENT PHASE TO HISTORY πριν φύγεις
+    const currentPhase = this.getSession().currentPhase;
+    if (['names', 'domains', 'logos', 'taglines'].includes(currentPhase)) {
+      this.saveCurrentGenerationToHistory(currentPhase as any);
+    }
+    
     if (phase === 'domains') {
       await this.generateDomains();
     }
@@ -469,12 +595,11 @@ export class PhaseController {
   }
   
   /**
-   * Load session - WITH DOMAIN FIX
+   * Load session
    */
   loadSession(sessionId: string): void {
     this.stateManager.loadFromLocalStorage(sessionId);
     
-    // DOMAIN FIX: Reset the domain generation tracker when loading a session
     const session = this.getSession();
     if (session.phases.domains.availableOptions.length > 0) {
       this.lastDomainGenerationName = session.input.businessName || 
@@ -483,7 +608,6 @@ export class PhaseController {
       this.lastDomainGenerationName = null;
     }
     
-    // NAMES FIX: Reset the names generation tracker when loading a session
     if (session.phases.names.generatedOptions.length > 0) {
       this.lastNamesGenerationDesc = session.input.description;
     } else {
@@ -492,13 +616,11 @@ export class PhaseController {
   }
   
   /**
-   * Clear session - WITH DOMAIN FIX
+   * Clear session
    */
   clearSession(): void {
     this.stateManager.clearSession();
-    // DOMAIN FIX: Clear the tracker
     this.lastDomainGenerationName = null;
-    // NAMES FIX: Clear the tracker
     this.lastNamesGenerationDesc = null;
   }
   
@@ -551,23 +673,20 @@ export class PhaseController {
       selectedLogo: logo
     });
     
-    // Update UI
     document.querySelectorAll('.logo-option').forEach(card => {
       card.classList.remove('selected');
     });
     document.querySelector(`[data-logo-id="${logoId}"]`)?.classList.add('selected');
     
-    // Enable continue button
     const continueBtn = document.getElementById('continue-btn');
     if (continueBtn) {
       continueBtn.removeAttribute('disabled');
     }
     
-    // Update preview
     window.dispatchEvent(new CustomEvent('phase-data-ready'));
   }
 
-    /**
+  /**
    * Download a logo
    */
   async downloadLogo(logoId: string): Promise<void> {
@@ -579,14 +698,12 @@ export class PhaseController {
       return;
     }
     
-    // Get the best quality URL
     const url = logo.urls?.png || logo.urls?.jpg || logo.urls?.svg;
     if (!url) {
       this.showError('No download URL available');
       return;
     }
     
-    // Create download link
     const link = document.createElement('a');
     link.href = url;
     link.download = `${this.stateManager.getBusinessName()}-logo.png`;

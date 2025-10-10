@@ -242,6 +242,11 @@ class StudioApp {
     // Render initial form
     this.phaseRenderer.renderPhase('initial');
     this.updateLeftPanel();
+    
+    // ✅ Clear preview panel
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('phase-data-ready'));
+    }, 100);
   }
   
   /**
@@ -253,6 +258,12 @@ class StudioApp {
     // Render current phase
     this.phaseRenderer.renderPhase(phase);
     this.updateLeftPanel();
+    
+    // ✅ UPDATE PREVIEW PANEL με τα saved selections
+    // Καλούμε το updatePreviewPanel() μέσω event
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('phase-data-ready'));
+    }, 100);
     
     // Show notification
     this.showToast('Session resumed! ✅', 'success');
@@ -274,15 +285,6 @@ class StudioApp {
       this.phaseRenderer.renderPhase(phase);
       this.updateLeftPanel();
     }) as EventListener);
-    
-    // Go back button
-    const goBackBtn = document.getElementById('go-back-btn');
-    goBackBtn?.addEventListener('click', () => {
-      const success = this.navigationManager.goBack();
-      if (success) {
-        window.dispatchEvent(new CustomEvent('phase-changed'));
-      }
-    });
     
     // Save session button
     const saveBtn = document.getElementById('save-session-btn');
@@ -338,7 +340,13 @@ class StudioApp {
   private async handlePhaseChange(phase: string): Promise<void> {
     const session = this.stateManager.getSession();
     
-    // Check if this phase needs data and doesn't have it yet
+    // ✅ SAVE CURRENT PHASE TO HISTORY πριν φύγεις
+    const currentPhase = session.currentPhase;
+    if (['names', 'domains', 'logos', 'taglines'].includes(currentPhase)) {
+      this.phaseController.saveCurrentGenerationToHistory(currentPhase as any);
+    }
+    
+    // Check if this phase needs data
     switch (phase) {
       case 'names':
         if (session.phases.names.generatedOptions.length === 0) {
@@ -347,6 +355,7 @@ class StudioApp {
         break;
         
       case 'domains':
+        // ✅ ALWAYS call - it has internal logic to skip if unchanged
         await this.phaseController.generateDomains();
         break;
         
@@ -357,9 +366,9 @@ class StudioApp {
         break;
         
       case 'logos':
-        if (session.phases.logos.generatedOptions.length === 0) {
-          await this.phaseController.generateLogos();
-        }
+        // ✅ ALWAYS call - it has internal logic to skip if unchanged
+        // This ensures we regenerate when preferences change
+        await this.phaseController.generateLogos();
         break;
         
       case 'tagline_prefs':
@@ -369,9 +378,8 @@ class StudioApp {
         break;
         
       case 'taglines':
-        if (session.phases.taglines.generatedOptions.length === 0) {
-          await this.phaseController.generateTaglines();
-        }
+        // ✅ ALWAYS call - it has internal logic to skip if unchanged
+        await this.phaseController.generateTaglines();
         break;
     }
   }
@@ -406,16 +414,6 @@ class StudioApp {
     
     // Update selections
     this.updateSelections();
-    
-    // Update go back button
-    const goBackBtn = document.getElementById('go-back-btn');
-    if (goBackBtn) {
-      if (session.navigation.canGoBack) {
-        goBackBtn.removeAttribute('disabled');
-      } else {
-        goBackBtn.setAttribute('disabled', 'true');
-      }
-    }
     
     // Update progress bar
     this.updateProgressBar();
