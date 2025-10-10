@@ -44,24 +44,18 @@ export class NavigationManager {
    * Go back to previous phase
    */
   goBack(): boolean {
-    const session = this.stateManager.getSession();
-    
-    if (!session.navigation.canGoBack) {
-      console.warn('Cannot go back - already at first phase');
-      return false;
-    }
-    
-    const history = session.navigation.history;
-    
-    if (history.length <= 1) {
-      return false;
-    }
-    
-    // Remove current phase
-    history.pop();
-    
-    // Get previous phase
-    const previousPhase = history[history.length - 1];
+  const session = this.stateManager.getSession();
+  const history = session.navigation.history;
+  
+  if (!session.navigation.canGoBack || history.length <= 1) {
+    console.warn('Cannot go back - already at first phase');
+    return false;
+  }
+  
+  // ΜΗΝ κάνεις pop! Απλά πήγαινε στο προηγούμενο
+  const currentIndex = history.indexOf(session.currentPhase);
+  if (currentIndex > 0) {
+    const previousPhase = history[currentIndex - 1];
     
     // Update current phase
     session.currentPhase = previousPhase;
@@ -75,6 +69,9 @@ export class NavigationManager {
     console.log(`⬅️ Navigated back to: ${previousPhase}`);
     return true;
   }
+  
+  return false;
+}
   
   /**
    * Can navigate to phase?

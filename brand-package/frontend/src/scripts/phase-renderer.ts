@@ -2,7 +2,11 @@
  * Phase Renderer - Renders UI for each phase
  */
 
-import { StateManager, PhaseType, NameOption, DomainOption, LogoOption, TaglineOption } from './state-manager';
+/**
+ * Phase Renderer - Renders UI for each phase
+ */
+
+import { StateManager, PhaseType, NameOption, DomainOption } from './state-manager';
 import { NavigationManager } from './navigation-manager';
 import { PhaseController } from './phase-controller';
 
@@ -825,112 +829,369 @@ export class PhaseRenderer {
     this.rightPanel.innerHTML = html;
   }
   
-  // Logo preferences and logos phase implementations
-  private renderLogoPreferencesPhase(): void {
+private renderLogoPreferencesPhase(): void {
+  const session = this.stateManager.getSession();
+  const businessName = session.input.businessName || session.phases.names.selectedName;
+  
+  const html = `
+    <div class="phase-content">
+      <div class="phase-header">
+        <h2>Logo Style & Colors</h2>
+        <p>Define the visual identity for <strong>${businessName}</strong></p>
+      </div>
+      
+      <div class="phase-divider"></div>
+      
+      <!-- AI Recommendation -->
+      <div class="ai-section">
+        <div class="section-header">
+          <h3>AI Analysis</h3>
+          <small class="text-secondary">You can modify or add your own details</small>
+        </div>
+        <textarea 
+          id="ai-recommendation-text" 
+          class="glass-input"
+          rows="4"
+          placeholder="Analyzing your brand..."
+        ></textarea>
+      </div>
+      
+      <div class="phase-divider"></div>
+      
+      <!-- Logo Styles Grid -->
+      <div class="style-section">
+        <h3>Select Style</h3>
+        <div class="section-spacing"></div>
+        <div class="style-grid">
+          ${['Modern', 'Classic', 'Playful', 'Minimalist', 'Bold', 'Elegant'].map(style => `
+            <div class="style-box" data-style="${style.toLowerCase()}">
+              <input type="checkbox" name="logo-style" value="${style.toLowerCase()}" id="style-${style.toLowerCase()}">
+              <span class="style-name">${style}</span>
+              <span class="style-desc">${this.getCompactDescription(style)}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="custom-input-section">
+          <input 
+            type="text" 
+            id="custom-style-input" 
+            class="glass-input compact-input"
+            placeholder="Describe your preferred style (optional)"
+          >
+        </div>
+      </div>
+      
+      <div class="phase-divider"></div>
+      
+      <!-- Color Palettes -->
+      <div class="color-section">
+        <h3>Select Colors</h3>
+        <div class="section-spacing"></div>
+        <div class="palette-grid" id="palette-grid">
+          <div class="loader-text">Loading palettes...</div>
+        </div>
+        <div class="custom-input-section">
+          <input 
+            type="text" 
+            id="custom-colors-input" 
+            class="glass-input compact-input"
+            placeholder="Describe your color preferences (optional)"
+          >
+        </div>
+      </div>
+      
+      <div class="phase-divider"></div>
+      
+      <div class="phase-actions">
+        <button id="back-btn" class="secondary-btn">Back</button>
+        <button id="generate-logos-btn" class="primary-btn gradient-btn">
+          Generate Logos
+        </button>
+      </div>
+    </div>
+  `;
+  
+  this.middlePanel.innerHTML = html;  // THIS CREATES THE style-box ELEMENTS
+  this.initializeLogoPreferences();
+  this.setupLogoPreferencesListeners();  // THIS FINDS THEM
+}
+
+  // Helper functions
+  private getStyleOptions() {
+    return [
+      { value: 'modern', name: 'Modern', desc: 'Clean & Tech' },
+      { value: 'classic', name: 'Classic', desc: 'Traditional' },
+      { value: 'playful', name: 'Playful', desc: 'Fun & Friendly' },
+      { value: 'minimalist', name: 'Minimalist', desc: 'Simple' },
+      { value: 'bold', name: 'Bold', desc: 'Strong Impact' },
+      { value: 'elegant', name: 'Elegant', desc: 'Sophisticated' }
+    ];
+  }
+
+  private getGeometricShape(style: string): string {
+    const shapes: {[key: string]: string} = {
+      'modern': '<svg viewBox="0 0 40 40"><polygon points="20,5 35,15 35,25 20,35 5,25 5,15" fill="currentColor" opacity="0.7"/></svg>',
+      'classic': '<svg viewBox="0 0 40 40"><rect x="10" y="10" width="20" height="20" fill="currentColor" opacity="0.7" rx="2"/></svg>',
+      'playful': '<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="12" fill="currentColor" opacity="0.7"/></svg>',
+      'minimalist': '<svg viewBox="0 0 40 40"><line x1="10" y1="20" x2="30" y2="20" stroke="currentColor" stroke-width="2"/></svg>',
+      'bold': '<svg viewBox="0 0 40 40"><polygon points="20,8 32,32 8,32" fill="currentColor" opacity="0.7"/></svg>',
+      'elegant': '<svg viewBox="0 0 40 40"><path d="M20,10 Q30,20 20,30 Q10,20 20,10" fill="currentColor" opacity="0.7"/></svg>'
+    };
+    return shapes[style] || '';
+  }
+
+private getCompactDescription(style: string): string {
+  const descriptions: {[key: string]: string} = {
+    'Modern': 'Clean & Tech',
+    'Classic': 'Traditional',
+    'Playful': 'Fun & Friendly',
+    'Minimalist': 'Simple',
+    'Bold': 'Strong Impact',
+    'Elegant': 'Sophisticated'
+  };
+  return descriptions[style] || '';
+}
+
+  // Helper για style icons
+  private getStyleIcon(style: string): string {
+    const icons: {[key: string]: string} = {
+      'modern': '🚀',
+      'classic': '🏛️',
+      'playful': '🎈',
+      'minimalist': '○',
+      'bold': '💪',
+      'elegant': '✨'
+    };
+    return icons[style] || '🎨';
+  }
+
+  // Helper για style descriptions  
+  private getStyleDescription(style: string): string {
+    const descriptions: {[key: string]: string} = {
+      'modern': 'Clean, tech-forward design',
+      'classic': 'Timeless, traditional feel',
+      'playful': 'Fun, approachable vibe',
+      'minimalist': 'Simple, essential elements',
+      'bold': 'Strong, impactful presence',
+      'elegant': 'Sophisticated, refined look'
+    };
+    return descriptions[style] || '';
+  }
+
+  // Generate color palette variations
+  private generateColorPalettes(baseColors: string[]): any[] {
+    return [
+      {
+        name: 'AI Suggested',
+        colors: baseColors
+      },
+      {
+        name: 'Monochrome',
+        colors: ['#000000', '#666666', '#CCCCCC', '#FFFFFF']
+      },
+      {
+        name: 'Ocean',
+        colors: ['#0077BE', '#00A8E8', '#00C9FF', '#B4E7F8']
+      },
+      {
+        name: 'Forest',
+        colors: ['#2D5016', '#73A942', '#AAD576', '#C5E99B']
+      },
+      {
+        name: 'Sunset',
+        colors: ['#FF6B35', '#F77825', '#FFB700', '#FFC857']
+      },
+      {
+        name: 'Royal',
+        colors: ['#3D1E6D', '#6B46C1', '#9D4EDD', '#C77DFF']
+      }
+    ];
+  }
+
+  // Helper to update state when selections change
+  private updateLogoPreferencesState(): void {
+    const style = (document.querySelector('input[name="logo-style"]:checked') as HTMLInputElement)?.value;
+    const paletteIndex = (document.querySelector('input[name="color-palette"]:checked') as HTMLInputElement)?.value;
+    
+    if (style || paletteIndex) {
+      document.getElementById('generate-logos-btn')?.removeAttribute('disabled');
+    }
+  }
+  
+  private renderLogosPhase(): void {
     const session = this.stateManager.getSession();
-    const businessName = session.input.businessName || session.phases.names.selectedName;
+    const currentLogos = session.phases.logos.generatedOptions || [];
+    const history = session.phases.logos.generationHistory || [];
     
     const html = `
       <div class="phase-content">
-        <h2>Logo Style Preferences</h2>
-        <p>Let's define the visual identity for <strong>${businessName}</strong></p>
-        
-        <div id="ai-suggestions" class="suggestions-panel">
-          <div class="loader">
-            <div class="loader-text">AI analyzing your brand...</div>
-          </div>
+        <div class="phase-header">
+          <h2>Logo Concepts</h2>
+          <p>Choose your logo design</p>
         </div>
         
-        <div class="style-grid" id="style-grid" style="display: none;">
-          <h3>Choose a Logo Style</h3>
-          <div class="style-options">
-            ${['modern', 'classic', 'playful', 'minimalist', 'bold', 'elegant'].map(style => `
-              <label class="style-option">
-                <input type="radio" name="logo-style" value="${style}">
-                <div class="style-card">
-                  <span class="style-name">${style.charAt(0).toUpperCase() + style.slice(1)}</span>
+        <div class="phase-divider"></div>
+        
+        ${currentLogos.length === 0 ? `
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Creating logo concepts...</p>
+          </div>
+        ` : `
+          <!-- Current Generation -->
+          <div class="current-logos-section">
+            <h3>Latest Designs</h3>
+            <div class="logos-grid">
+              ${currentLogos.map(logo => `
+                <div class="logo-option ${session.phases.logos.selectedLogo?.id === logo.id ? 'selected' : ''}" data-logo-id="${logo.id}">
+                  <div class="logo-image">
+                    <img src="${logo.urls?.png || logo.urls?.jpg || '/placeholder-logo.png'}" 
+                        alt="${logo.concept_name}"
+                        onerror="this.src='/placeholder-logo.png'">
+                  </div>
+                  <h4>${logo.concept_name}</h4>
+                  <p class="logo-description">${logo.description || ''}</p>
+                  <div class="logo-actions">
+                    <button class="select-logo-btn" data-logo-id="${logo.id}">
+                      ${session.phases.logos.selectedLogo?.id === logo.id ? 'Selected ✓' : 'Select'}
+                    </button>
+                    <button class="download-logo-btn" data-logo-id="${logo.id}">
+                      Download
+                    </button>
+                  </div>
                 </div>
-              </label>
-            `).join('')}
+              `).join('')}
+            </div>
           </div>
-        </div>
+          
+          ${history.length > 0 ? `
+            <div class="phase-divider"></div>
+            <details class="history-section">
+              <summary>Previous Generations (${history.length})</summary>
+              ${history.reverse().map((gen, idx) => `
+                <div class="generation-group">
+                  <h4>Generation from ${new Date(gen.timestamp).toLocaleString()}</h4>
+                  <div class="logos-grid smaller">
+                    ${gen.logos.map(logo => `
+                      <div class="logo-option historical" data-logo-id="${logo.id}">
+                        <div class="logo-image">
+                          <img src="${logo.urls?.png || logo.urls?.jpg || '/placeholder-logo.png'}" 
+                              alt="${logo.concept_name}"
+                              onerror="this.src='/placeholder-logo.png'">
+                        </div>
+                        <h4>${logo.concept_name}</h4>
+                        <div class="logo-actions">
+                          <button class="select-logo-btn" data-logo-id="${logo.id}">Select</button>
+                          <button class="download-logo-btn" data-logo-id="${logo.id}">Download</button>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </details>
+          ` : ''}
+        `}
         
-        <div class="action-buttons">
-          <button class="primary-btn" id="continue-btn" disabled>
-            Generate Logos →
+        <div class="phase-divider"></div>
+        
+        <div class="phase-actions">
+          <button id="back-btn" class="secondary-btn">← Back to Style</button>
+          <button id="regenerate-logos-btn" class="secondary-btn">🔄 Try Different Logos</button>
+          <button id="continue-btn" class="primary-btn gradient-btn" ${!session.phases.logos.selectedLogo ? 'disabled' : ''}>
+            Continue →
           </button>
         </div>
       </div>
     `;
     
     this.middlePanel.innerHTML = html;
-    this.initializeLogoPreferences();
-    this.setupLogoPreferencesListeners();
-  }
-  
-  private renderLogosPhase(): void {
-    const session = this.stateManager.getSession();
-    const logos = session.phases.logos.generatedOptions || [];
     
-    const html = `
-      <div class="phase-content">
-        <h2>Logo Concepts</h2>
-        
-        ${logos.length === 0 ? `
-          <div class="loader">
-            <div class="loader-text">Creating logo concepts...</div>
-          </div>
-        ` : `
-          <div class="logos-grid">
-            ${logos.map(logo => `
-              <div class="logo-card" data-logo-id="${logo.id}">
-                <img src="${logo.urls?.png || logo.urls?.jpg || '/placeholder-logo.png'}" 
-                     alt="${logo.concept_name}"
-                     onerror="this.src='/placeholder-logo.png'">
-                <h4>${logo.concept_name}</h4>
-                <div class="logo-actions">
-                  <button onclick="phaseController.selectLogo('${logo.id}')" class="primary-btn">
-                    Select
-                  </button>
-                  <button onclick="phaseController.downloadLogo('${logo.id}')" class="secondary-btn">
-                    Download
-                  </button>
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `}
-      </div>
-    `;
-    
-    this.middlePanel.innerHTML = html;
-    
-    if (logos.length === 0) {
-      this.phaseController?.generateLogos();
-    } else {
-      // Add event listeners after rendering
-      setTimeout(() => {
-        document.querySelectorAll('.select-logo-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const logoId = (e.target as HTMLElement).dataset.logoId;
-            if (logoId && this.phaseController) {
-              this.phaseController.selectLogo(logoId);
-            }
-          });
-        });
-        
-        document.querySelectorAll('.download-logo-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            const logoId = (e.target as HTMLElement).dataset.logoId;
-            if (logoId && this.phaseController) {
-              this.phaseController.downloadLogo(logoId);
-            }
-          });
-        });
-      }, 100);
+    // Generate logos if none exist
+    if (currentLogos.length === 0 && this.phaseController) {
+      this.phaseController.generateLogos();
     }
+    
+    // Setup event listeners after DOM is ready
+    setTimeout(() => {
+      // Select buttons
+      document.querySelectorAll('.select-logo-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const logoId = (e.currentTarget as HTMLElement).dataset.logoId;
+          if (logoId && this.phaseController) {
+            // Find logo in current or history
+            let logo = currentLogos.find(l => l.id === logoId);
+            if (!logo) {
+              history.forEach(gen => {
+                const found = gen.logos.find(l => l.id === logoId);
+                if (found) logo = found;
+              });
+            }
+            
+            if (logo) {
+              this.stateManager.updatePhase('logos', {
+                selectedLogo: logo
+              });
+              
+              // Update UI
+              document.querySelectorAll('.logo-option').forEach(opt => {
+                opt.classList.remove('selected');
+              });
+              document.querySelector(`[data-logo-id="${logoId}"]`)?.classList.add('selected');
+              
+              // Update button text
+              document.querySelectorAll('.select-logo-btn').forEach(b => {
+                const btnId = (b as HTMLElement).dataset.logoId;
+                b.textContent = btnId === logoId ? 'Selected ✓' : 'Select';
+              });
+              
+              // Enable continue
+              document.getElementById('continue-btn')?.removeAttribute('disabled');
+            }
+          }
+        });
+      });
+      
+      // Download buttons
+      document.querySelectorAll('.download-logo-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const logoId = (e.currentTarget as HTMLElement).dataset.logoId;
+          if (logoId && this.phaseController) {
+            this.phaseController.downloadLogo(logoId);
+          }
+        });
+      });
+      
+      // Back button
+      document.getElementById('back-btn')?.addEventListener('click', () => {
+        this.navigationManager.goBack();
+        window.dispatchEvent(new CustomEvent('phase-changed'));
+      });
+      
+      // Regenerate button
+      document.getElementById('regenerate-logos-btn')?.addEventListener('click', () => {
+        // Clear preferences to force regeneration
+        this.stateManager.updatePhase('logos', {
+          lastGeneratedPreferences: null
+        });
+        if (this.phaseController) {
+          this.phaseController.generateLogos();
+        }
+      });
+      
+      // Continue button
+      document.getElementById('continue-btn')?.addEventListener('click', () => {
+        this.stateManager.completePhase('logos');
+        const nextPhase = this.navigationManager.determineNextPhase();
+        if (nextPhase) {
+          this.navigationManager.goToPhase(nextPhase);
+          window.dispatchEvent(new CustomEvent('phase-changed', { detail: { phase: nextPhase } }));
+        }
+      });
+    }, 100);
   }
   
+  // Updated initialization function
   private async initializeLogoPreferences(): Promise<void> {
     const session = this.stateManager.getSession();
     const businessName = session.input.businessName || session.phases.names.selectedName;
@@ -940,8 +1201,53 @@ export class PhaseRenderer {
       return;
     }
     
+    // CHECK αν έχουμε ήδη
+    if (session.phases.logoPreferences.aiSuggestions) {
+      const existing = session.phases.logoPreferences.aiSuggestions;
+      
+      // Extract colors safely
+      const colorStrings = existing.colors.map((c: any) => 
+        typeof c === 'string' ? c : c.hex
+      ) as string[];
+      
+      // Populate text
+      const textArea = document.getElementById('ai-recommendation-text') as HTMLTextAreaElement;
+      if (textArea) {
+        const recommendationText = `For ${businessName}, ${existing.styleReasoning || existing.colorReasoning}\n\nRecommended style: ${existing.style}\nSuggested colors: ${colorStrings.join(', ')}`;
+        textArea.value = recommendationText;
+      }
+      
+      // Select saved style
+      const savedStyle = session.phases.logoPreferences.userChoice?.style || existing.style;
+      const styleInput = document.querySelector(`input[value="${savedStyle}"]`) as HTMLInputElement;
+      if (styleInput) {
+        styleInput.checked = true;
+        styleInput.closest('.style-card')?.classList.add('selected');
+      }
+      
+      // Show palettes
+      const paletteGrid = document.getElementById('palette-grid');
+      if (paletteGrid) {
+        const palettes = this.generateColorPalettes(colorStrings);
+        paletteGrid.innerHTML = palettes.map((palette, index) => `
+          <div class="palette-box" data-palette="${palette.name}">
+            <input type="checkbox" name="color-palette" value="${palette.name}" id="palette-${index}">
+            <div class="color-swatches">
+              ${palette.colors.map((color: string) => `
+                <div class="color-swatch" style="background-color: ${color};"></div>
+              `).join('')}
+            </div>
+            <div class="palette-name">${palette.name}</div>
+          </div>
+        `).join('');
+      }
+      
+      document.getElementById('generate-logos-btn')?.removeAttribute('disabled');
+      return;
+    }
+    
+    // API call section stays the same
     try {
-      // Import apiClient dynamically to avoid circular dependencies
       const { apiClient } = await import('./api-client');
       
       const response = await apiClient.analyzePreferences({
@@ -950,35 +1256,38 @@ export class PhaseRenderer {
         for_type: 'logo'
       });
       
-      // Show suggestions
-      const suggestionsEl = document.getElementById('ai-suggestions');
-      if (suggestionsEl) {
-        suggestionsEl.innerHTML = `
-          <div class="ai-recommendation">
-            <h4>✨ AI Recommendation</h4>
-            <p>${response.reasoning}</p>
-            <div>Suggested: <strong>${response.style}</strong></div>
-          </div>
-        `;
+      const recommendationText = `For ${businessName}, ${response.reasoning}\n\nRecommended style: ${response.style}\nSuggested colors: ${response.colors.join(', ')}`;
+      
+      const textArea = document.getElementById('ai-recommendation-text') as HTMLTextAreaElement;
+      if (textArea) {
+        textArea.value = recommendationText;
       }
       
-      // Show style grid
-      const styleGridEl = document.getElementById('style-grid');
-      if (styleGridEl) {
-        styleGridEl.style.display = 'block';
-      }
-      
-      // Pre-select AI suggestion
       const suggestedInput = document.querySelector(`input[value="${response.style}"]`) as HTMLInputElement;
-      if (suggestedInput) suggestedInput.checked = true;
-      
-      // Enable continue
-      const continueBtn = document.getElementById('continue-btn');
-      if (continueBtn) {
-        continueBtn.removeAttribute('disabled');
+      if (suggestedInput) {
+        suggestedInput.checked = true;
+        suggestedInput.closest('.style-card')?.classList.add('selected');
       }
       
-      // Save to state
+      const paletteGrid = document.getElementById('palette-grid');
+      if (paletteGrid) {
+        const palettes = this.generateColorPalettes(response.colors);
+        paletteGrid.innerHTML = palettes.map((palette, index) => `
+          <div class="palette-box ${index === 0 ? 'selected' : ''}" data-palette="${palette.name}">
+            <input type="checkbox" name="color-palette" value="${palette.name}" id="palette-${index}" ${index === 0 ? 'checked' : ''}>
+            <div class="color-swatches">
+              ${palette.colors.map((color: string) => `
+                <div class="color-swatch" style="background-color: ${color};"></div>
+              `).join('')}
+            </div>
+            <div class="palette-name">${palette.name}</div>
+          </div>
+        `).join('');
+      }
+      
+      document.getElementById('generate-logos-btn')?.removeAttribute('disabled');
+      
+      // SAVE to state
       this.stateManager.updatePhase('logoPreferences', {
         status: 'completed',
         aiSuggestions: response,
@@ -988,31 +1297,10 @@ export class PhaseRenderer {
           customized: false
         }
       });
+      
     } catch (error) {
       console.error('Failed to get preferences:', error);
-      
-      // Show error state
-      const suggestionsEl = document.getElementById('ai-suggestions');
-      if (suggestionsEl) {
-        suggestionsEl.innerHTML = `
-          <div class="ai-error">
-            <h4>⚠️ Unable to load AI suggestions</h4>
-            <p>Please select a style manually and continue.</p>
-          </div>
-        `;
-      }
-      
-      // Show style grid anyway
-      const styleGridEl = document.getElementById('style-grid');
-      if (styleGridEl) {
-        styleGridEl.style.display = 'block';
-      }
-      
-      // Enable continue button
-      const continueBtn = document.getElementById('continue-btn');
-      if (continueBtn) {
-        continueBtn.removeAttribute('disabled');
-      }
+      document.getElementById('generate-logos-btn')?.removeAttribute('disabled');
     }
   }
   
@@ -1020,39 +1308,78 @@ export class PhaseRenderer {
    * Setup Logo Preferences Phase Listeners
    */
   private setupLogoPreferencesListeners(): void {
-    // Style selection
-    const styleOptions = document.querySelectorAll('input[name="logo-style"]');
-    styleOptions.forEach(option => {
-      option.addEventListener('change', (e) => {
-        const selectedStyle = (e.target as HTMLInputElement).value;
+    // Style box clicks - NOW THE .style-box ELEMENTS EXIST IN DOM
+    const styleBoxes = document.querySelectorAll('.style-box');
+    styleBoxes.forEach(box => {
+      box.addEventListener('click', () => {
+        const checkbox = box.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        checkbox.checked = !checkbox.checked;
         
-        // Update state
-        this.stateManager.updatePhase('logoPreferences', {
-          userChoice: {
-            style: selectedStyle,
-            colors: [], // Will be set when we implement color selection
-            customized: true
-          }
-        });
-        
-        // Enable continue button
-        const continueBtn = document.getElementById('continue-btn');
-        if (continueBtn) {
-          continueBtn.removeAttribute('disabled');
+        if (checkbox.checked) {
+          box.classList.add('selected');
+        } else {
+          box.classList.remove('selected');
         }
+        
+        this.updateLogoPreferencesState();
       });
     });
+
+    // Palette box clicks
+    const paletteBoxes = document.querySelectorAll('.palette-box');
+    paletteBoxes.forEach(box => {
+      box.addEventListener('click', () => {
+        const checkbox = box.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        checkbox.checked = !checkbox.checked;
+        
+        if (checkbox.checked) {
+          box.classList.add('selected');
+        } else {
+          box.classList.remove('selected');
+        }
+        
+        this.updateLogoPreferencesState();
+      });
+    });
+
+    // Generate button - always enabled
+    document.getElementById('generate-logos-btn')?.addEventListener('click', () => {
+      this.collectAndSavePreferences();
+    });
     
-    // Continue button
-    const continueBtn = document.getElementById('continue-btn');
-    continueBtn?.addEventListener('click', () => {
-      this.stateManager.completePhase('logoPreferences');
-      const nextPhase = this.navigationManager.determineNextPhase();
-      if (nextPhase) {
-        this.navigationManager.goToPhase(nextPhase);
-        window.dispatchEvent(new CustomEvent('phase-changed', { detail: { phase: nextPhase } }));
+    // Back button
+    document.getElementById('back-btn')?.addEventListener('click', () => {
+      this.navigationManager.goBack();
+      window.dispatchEvent(new CustomEvent('phase-changed'));
+    });
+  }
+
+  private collectAndSavePreferences(): void {
+    const selectedStyles = Array.from(document.querySelectorAll('input[name="logo-style"]:checked'))
+      .map(cb => (cb as HTMLInputElement).value)
+      .filter(v => v !== 'none');
+      
+    const customStyle = (document.getElementById('custom-style-input') as HTMLInputElement)?.value;
+    const customColors = (document.getElementById('custom-colors-input') as HTMLInputElement)?.value;
+    const aiText = (document.getElementById('ai-recommendation-text') as HTMLTextAreaElement)?.value;
+    
+    this.stateManager.updatePhase('logoPreferences', {
+      userChoice: {
+        styles: selectedStyles,
+        customStyle: customStyle,
+        customColors: customColors,
+        aiText: aiText,
+        customized: true
       }
     });
+    
+    // Continue to next phase
+    this.stateManager.completePhase('logoPreferences');
+    const nextPhase = this.navigationManager.determineNextPhase();
+    if (nextPhase) {
+      this.navigationManager.goToPhase(nextPhase);
+      window.dispatchEvent(new CustomEvent('phase-changed', { detail: { phase: nextPhase } }));
+    }
   }
   
   private renderTaglinePreferencesPhase(): void {

@@ -299,43 +299,79 @@ export class PhaseController {
     const session = this.stateManager.getSession();
     const businessName = this.stateManager.getBusinessName();
     
-    // Check αν έχουμε ήδη logos
-    if (session.phases.logos.generatedOptions.length > 0) {
-      console.log('Logos already generated, skipping...');
-      return;
-    }
-    
     if (!businessName) {
-      this.showError('Business name is required for logo generation');
+      this.showError('Business name is required');
       return;
     }
     
-    // Πάρε τα preferences από το logoPreferences phase
     const logoPrefs = session.phases.logoPreferences;
-    const style = logoPrefs?.userChoice?.style || logoPrefs?.aiSuggestions?.style || 'modern';
-    const userColors = logoPrefs?.userChoice?.colors || [];
-    const aiColors = logoPrefs?.aiSuggestions?.colors || [];
+    const userChoice = logoPrefs?.userChoice || {};
     
-    // Convert ColorSuggestion[] to string[] if needed
-    const colors = userColors.length > 0 
-      ? (typeof userColors[0] === 'string' ? userColors : userColors.map((c: any) => c.hex || c.color || c))
-      : (aiColors.length > 0 
-        ? (typeof aiColors[0] === 'string' ? aiColors : aiColors.map((c: any) => c.hex || c.color || c))
-        : []);
+    // Collect current preferences
+    const selectedStyles = userChoice.styles || [];
+    const customStyle = userChoice.customStyle || '';
+    const customColors = userChoice.customColors || '';
+    const aiText = userChoice.aiText || '';
     
-    this.showLoader('Generating logo concepts...');
+    // Create preference fingerprint
+    const currentPreferences = {
+      styles: selectedStyles,
+      customStyle: customStyle,
+      customColors: customColors,
+      aiText: aiText
+    };
+    
+    // Check if preferences changed
+    const lastPrefs = session.phases.logos.lastGeneratedPreferences;
+    const preferencesChanged = JSON.stringify(currentPreferences) !== JSON.stringify(lastPrefs);
+    
+    // Skip if same preferences and we have logos
+    if (!preferencesChanged && session.phases.logos.generatedOptions.length > 0) {
+      console.log('Preferences unchanged, showing existing logos...');
+      return;
+    }
+    
+    // Build prompt
+    let finalStyle = selectedStyles.join(', ');
+    if (customStyle) {
+      finalStyle = finalStyle ? `${finalStyle}, ${customStyle}` : customStyle;
+    }
+    
+    const enhancedDescription = [
+      session.input.description,
+      aiText ? `AI Analysis: ${aiText}` : '',
+      customColors ? `Color preferences: ${customColors}` : ''
+    ].filter(Boolean).join('\n\n');
+    
+    this.showLoader('Generating new logo concepts...');
     
     try {
       const result = await apiClient.generateLogos({
         business_name: businessName,
-        description: session.input.description,
-        style: style,
-        colors: colors
+        description: enhancedDescription,
+        style: finalStyle || 'modern',
+        colors: []
       });
       
+      // Save to history if we had previous logos
+      if (session.phases.logos.generatedOptions.length > 0) {
+        const history = session.phases.logos.generationHistory || [];
+        history.push({
+          timestamp: Date.now(),
+          preferences: lastPrefs,
+          logos: session.phases.logos.generatedOptions
+        });
+        
+        this.stateManager.updatePhase('logos', {
+          generationHistory: history
+        });
+      }
+      
+      // Update with new logos
       this.stateManager.updatePhase('logos', {
         status: 'completed',
-        generatedOptions: result.logos
+        generatedOptions: result.logos,
+        lastGeneratedPreferences: currentPreferences // Save current preferences
       });
       
       this.hideLoader();
@@ -344,7 +380,7 @@ export class PhaseController {
       }));
     } catch (error) {
       console.error('Logo generation error:', error);
-      this.showError('Failed to generate logos: ' + (error as Error).message);
+      this.showError('Failed to generate logos');
       this.hideLoader();
     }
   }
@@ -516,7 +552,7 @@ export class PhaseController {
     });
     
     // Update UI
-    document.querySelectorAll('.logo-card').forEach(card => {
+    document.querySelectorAll('.logo-option').forEach(card => {
       card.classList.remove('selected');
     });
     document.querySelector(`[data-logo-id="${logoId}"]`)?.classList.add('selected');

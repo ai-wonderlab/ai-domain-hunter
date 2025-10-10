@@ -97,23 +97,6 @@ export interface StudioSession {
       checkRounds: number;
     };
     
-    logoPreferences: {
-      status: PhaseStatus;
-      startedAt: number | null;
-      completedAt: number | null;
-      aiSuggestions: {
-        style: string;
-        styleReasoning: string;
-        colors: ColorSuggestion[];
-        colorReasoning: string;
-      } | null;
-      userChoice: {
-        style: string;
-        colors: string[];
-        customized: boolean;
-      } | null;
-    };
-    
     logos: {
       status: PhaseStatus;
       startedAt: number | null;
@@ -121,6 +104,12 @@ export interface StudioSession {
       generatedOptions: LogoOption[];
       selectedLogo: LogoOption | null;
       generationId: string | null;
+      generationHistory: Array<{
+      timestamp: number;
+      preferences: any;
+      logos: LogoOption[];
+    }>;
+    lastGeneratedPreferences?: any; // Track what preferences were used
     };
     
     taglinePreferences: {
@@ -134,6 +123,27 @@ export interface StudioSession {
       userChoice: {
         tone: string;
         customized: boolean;
+      } | null;
+    };
+
+    logoPreferences: {
+      status: PhaseStatus;
+      startedAt: number | null;
+      completedAt: number | null;
+      aiSuggestions: {
+        style: string;
+        styleReasoning: string;
+        colors: ColorSuggestion[];
+        colorReasoning: string;
+      } | null;
+      userChoice: {
+        style?: string;          // Keep for backwards compatibility
+        styles?: string[];        // NEW: Array for multiple selections
+        customStyle?: string;     // NEW: Custom style text
+        customColors?: string;    // NEW: Custom colors text  
+        aiText?: string;         // NEW: Modified AI analysis
+        colors?: string[];
+        customized?: boolean;
       } | null;
     };
     
@@ -226,7 +236,9 @@ export class StateManager {
           completedAt: null,
           generatedOptions: [],
           selectedLogo: null,
-          generationId: null
+          generationId: null,
+          generationHistory: [],
+          lastGeneratedPreferences: null
         },
         taglinePreferences: {
           status: 'not_started',

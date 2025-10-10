@@ -2,7 +2,7 @@
  * API Client - Handles all backend communication
  */
 
-interface ApiResponse<T = any> {
+interface _ApiResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;

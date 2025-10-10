@@ -487,7 +487,6 @@ reasoning (2-3 sentences)"""
         
         result = await ai_manager.generate_text(
             prompt=prompt,
-            model="claude-3-5-sonnet",
             temperature=0.7
         )
         

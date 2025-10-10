@@ -1167,6 +1167,130 @@
   gap: 4px;
 }
 
+/* Spacing & Layout */
+.section-spacing {
+  height: 16px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.custom-input-section {
+  margin-top: 16px;
+}
+
+.compact-input {
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+/* Style Grid - Clean boxes */
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.style-box {
+  position: relative;
+  padding: 16px;
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.style-box:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.style-box.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+.style-box input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.style-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.style-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+}
+
+/* Color Palettes */
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.palette-box {
+  position: relative;
+  padding: 12px;
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.palette-box:hover {
+  border-color: rgba(102, 126, 234, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.palette-box.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+}
+
+.palette-box input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.color-swatches {
+  display: flex;
+  gap: 2px;
+  height: 40px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.color-swatch {
+  flex: 1;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.palette-name {
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
 /* ============================================
    ANIMATIONS
    ============================================ */
