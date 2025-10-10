@@ -19,7 +19,8 @@ from api.routes import (
     auth_routes,
     generation_routes,
     user_routes,
-    project_routes
+    project_routes,
+    session_routes
 )
 
 # Setup logging
@@ -79,6 +80,8 @@ app.include_router(auth_routes.router, prefix="/api/auth", tags=["Authentication
 app.include_router(generation_routes.router, prefix="/api/generate", tags=["Generation"])
 app.include_router(user_routes.router, prefix="/api/users", tags=["Users"])
 app.include_router(project_routes.router, prefix="/api/projects", tags=["Projects"])
+app.include_router(session_routes.router, prefix="/api/sessions", tags=["sessions"])
+
 
 # Root endpoint
 @app.get("/")

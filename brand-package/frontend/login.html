@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Brand Studio</title>
+  <link rel="stylesheet" href="/src/styles/style.css">
+  <style>
+    .auth-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 40px;
+      background: var(--glass-bg);
+      border-radius: 20px;
+      box-shadow: var(--glass-shadow);
+    }
+    
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .auth-input {
+      padding: 12px;
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.5);
+    }
+    
+    .auth-button {
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    
+    .auth-button:hover {
+      opacity: 0.9;
+    }
+    
+    .auth-toggle {
+      text-align: center;
+      margin-top: 20px;
+    }
+    
+    .error-message {
+      color: #e53e3e;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <h1 id="auth-title">Login</h1>
+    
+    <form class="auth-form" id="auth-form">
+      <input 
+        type="email" 
+        id="email" 
+        class="auth-input" 
+        placeholder="Email" 
+        required
+      />
+      
+      <input 
+        type="password" 
+        id="password" 
+        class="auth-input" 
+        placeholder="Password" 
+        required
+      />
+      
+      <button type="submit" class="auth-button" id="submit-btn">
+        Login
+      </button>
+      
+      <div class="error-message" id="error-msg" style="display: none;"></div>
+    </form>
+    
+    <div class="auth-toggle">
+      <p>
+        <span id="toggle-text">Don't have an account?</span>
+        <a href="#" id="toggle-link">Sign up</a>
+      </p>
+    </div>
+  </div>
+  
+  <script type="module">
+    import { authManager } from './src/scripts/auth-manager.ts';
+    
+    let isLogin = true;
+    
+    const form = document.getElementById('auth-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const submitBtn = document.getElementById('submit-btn');
+    const errorMsg = document.getElementById('error-msg');
+    const title = document.getElementById('auth-title');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link');
+    
+    // Toggle between login/signup
+    toggleLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      isLogin = !isLogin;
+      
+      if (isLogin) {
+        title.textContent = 'Login';
+        submitBtn.textContent = 'Login';
+        toggleText.textContent = "Don't have an account?";
+        toggleLink.textContent = 'Sign up';
+      } else {
+        title.textContent = 'Sign Up';
+        submitBtn.textContent = 'Create Account';
+        toggleText.textContent = 'Already have an account?';
+        toggleLink.textContent = 'Login';
+      }
+      
+      errorMsg.style.display = 'none';
+    });
+    
+    // Handle form submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      
+      errorMsg.style.display = 'none';
+      submitBtn.textContent = 'Loading...';
+      submitBtn.disabled = true;
+      
+      let success;
+      if (isLogin) {
+        success = await authManager.login(email, password);
+      } else {
+        success = await authManager.register(email, password);
+      }
+      
+      if (success) {
+        console.log('✅ Login successful, redirecting to studio...');
+        window.location.href = '/studio.html';
+        } else {
+        errorMsg.textContent = isLogin ? 'Login failed' : 'Registration failed';
+        errorMsg.style.display = 'block';
+        submitBtn.textContent = isLogin ? 'Login' : 'Create Account';
+        submitBtn.disabled = false;
+        }
+    });
+    
+    // Check if already logged in
+    if (authManager.isAuthenticated()) {
+      window.location.href = '/studio.html';
+    }
+  </script>
+</body>
+</html>

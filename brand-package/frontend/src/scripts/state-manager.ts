@@ -2,6 +2,7 @@
  * State Manager - Central state management for Brand Studio
  * Handles all session state, persistence, and navigation
  */
+import { authManager } from './auth-manager';
 
 export type PhaseType = 
   | 'initial' 
@@ -211,7 +212,7 @@ export class StateManager {
   private createNewSession(): StudioSession {
     return {
       sessionId: this.generateSessionId(),
-      userId: null,
+      userId: authManager.getCurrentUserId(),
       createdAt: Date.now(),
       lastSaved: Date.now(),
       currentPhase: 'initial',
@@ -371,8 +372,40 @@ export class StateManager {
       localStorage.setItem(key, JSON.stringify(this.session));
       this.hasUnsavedChanges = false;
       console.log('💾 Session saved to localStorage');
+      
+      // ✅ ALSO save to backend if authenticated
+      this.saveToBackend().catch(err => {
+        console.warn('Failed to save to backend:', err);
+      });
     } catch (error) {
       console.error('Failed to save to localStorage:', error);
+    }
+  }
+
+  /**
+   * Save session to backend
+   */
+  private async saveToBackend(): Promise<void> {
+    if (!authManager.isAuthenticated()) {
+      return; // Skip if not logged in
+    }
+    
+    try {
+      const token = authManager.getToken();
+      const response = await fetch('/api/sessions/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(this.session)
+      });
+      
+      if (response.ok) {
+        console.log('☁️ Session saved to cloud');
+      }
+    } catch (error) {
+      console.error('Backend save failed:', error);
     }
   }
   

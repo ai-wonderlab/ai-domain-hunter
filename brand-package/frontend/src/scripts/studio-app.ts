@@ -7,6 +7,7 @@ import { NavigationManager } from './navigation-manager';
 import { PhaseRenderer } from './phase-renderer';
 import { PhaseController } from './phase-controller';
 import type { PhaseType } from './state-manager';
+import { authManager } from './auth-manager.ts';  
 
 class StudioApp {
   private stateManager: StateManager;
@@ -35,6 +36,13 @@ class StudioApp {
    * Initialize app
    */
   private async init(): Promise<void> {
+    if (!authManager.isAuthenticated()) {
+      console.log('🔒 Not authenticated - redirecting to login');
+      window.location.href = '/login.html';
+      return;  // Stop initialization
+    }
+    
+    console.log('✅ User authenticated:', authManager.getCurrentUser()?.email);
     // Show session selection modal
     this.showSessionModal();
     
@@ -320,6 +328,24 @@ class StudioApp {
     historyBtn?.addEventListener('click', () => {
       this.showSessionHistory();
     });
+
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn?.addEventListener('click', () => {
+      if (confirm('Are you sure you want to logout?')) {
+        console.log('🚪 Logging out...');
+        authManager.logout();
+        window.location.href = '/login.html';
+      }
+    });
+
+    // ✅ DISPLAY USER EMAIL
+    const userEmailEl = document.getElementById('user-email');
+    if (userEmailEl && authManager.isAuthenticated()) {
+      const user = authManager.getCurrentUser();
+      if (user) {
+        userEmailEl.textContent = user.email;
+      }
+    }
     
     // Breadcrumb clicks - allow navigation to any phase in history
     document.addEventListener('click', (e) => {

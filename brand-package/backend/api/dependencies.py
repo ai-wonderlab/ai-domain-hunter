@@ -23,7 +23,7 @@ security = HTTPBearer()
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)) # for testing
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
 ) -> str:
     """
     Get current user from JWT token
@@ -31,41 +31,41 @@ async def get_current_user(
     Returns:
         User ID
     """
-    # token = credentials.credentials
+    token = credentials.credentials
     
-    # try:
-    #     # Decode JWT token
-    #     payload = jwt.decode(
-    #         token,
-    #         settings.jwt_secret_key,
-    #         algorithms=[settings.jwt_algorithm]
-    #     )
+    try:
+        # Decode JWT token
+        payload = jwt.decode(
+            token,
+            settings.jwt_secret_key,
+            algorithms=[settings.jwt_algorithm]
+        )
         
-    #     user_id = payload.get("sub")
-    #     if not user_id:
-    #         raise InvalidTokenError("Invalid token payload")
+        user_id = payload.get("sub")
+        if not user_id:
+            raise InvalidTokenError("Invalid token payload")
         
-    return "00000000-0000-0000-0000-000000000001"  # For now, return a dummy user ID
-        
-    # except jwt.ExpiredSignatureError:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Token has expired",
-    #         headers={"WWW-Authenticate": "Bearer"}
-    #     )
-    # except jwt.InvalidTokenError as e:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Invalid token",
-    #         headers={"WWW-Authenticate": "Bearer"}
-    #     )
-    # except Exception as e:
-    #     logger.error(f"Authentication error: {e}")
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail="Could not validate credentials",
-    #         headers={"WWW-Authenticate": "Bearer"}
-    #     )
+        return user_id  # ✅ ΠΡΟΣΘΕΣΕ ΑΥΤΟ!
+                
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except Exception as e:
+        logger.error(f"Authentication error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
 
 async def get_optional_user(
