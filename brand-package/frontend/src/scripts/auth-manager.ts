@@ -1,179 +1,154 @@
 /**
- * Auth Manager - Handles authentication state
+ * Auth Manager - Supabase Auth Integration
  */
 
-interface User {
-  id: string;
-  email: string;
-  created_at: string;
-}
+import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js'
 
-interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  token: string | null;
-}
+// @ts-ignore - Vite provides import.meta.env at runtime
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://pmzxlnpmapqlwsphiath.supabase.co'
+// @ts-ignore - Vite provides import.meta.env at runtime
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtenhsbnBtYXBxbHdzcGhpYXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzOTYwMDUsImV4cCI6MjA3NDk3MjAwNX0.lmLmBgEz0O5dfKeu_4HwOxNMJq0IrXVFiSAKKCs2OCM'
 
-export class AuthManager {
-  private state: AuthState;
+class AuthManager {
+  private supabase: SupabaseClient
+  private currentUser: User | null = null
+  private currentSession: Session | null = null
   
   constructor() {
-    this.state = this.loadAuthState();
-  }
-  
-  /**
-   * Load auth state from localStorage
-   */
-  private loadAuthState(): AuthState {
-    const token = localStorage.getItem('auth_token');
-    const userStr = localStorage.getItem('user');
+    // ✅ Initialize Supabase client
+    this.supabase = createClient(supabaseUrl, supabaseAnonKey)
     
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        return {
-          isAuthenticated: true,
-          user,
-          token
-        };
-      } catch (e) {
-        return this.getEmptyState();
-      }
-    }
+    // Load session from localStorage
+    this.loadSession()
     
-    return this.getEmptyState();
-  }
-  
-  /**
-   * Get empty auth state
-   */
-  private getEmptyState(): AuthState {
-    return {
-      isAuthenticated: false,
-      user: null,
-      token: null
-    };
-  }
-  
-  /**
-   * Login user
-   */
-  async login(email: string, password: string): Promise<boolean> {
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-      
-      const data = await response.json();
-      
-      // Save to state
-      this.state = {
-        isAuthenticated: true,
-        user: data.user,
-        token: data.access_token
-      };
-      
-      // Save to localStorage
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      // Dispatch event
-      window.dispatchEvent(new CustomEvent('auth-state-changed', {
-        detail: { isAuthenticated: true, user: data.user }
-      }));
-      
-      return true;
-    } catch (error) {
-      console.error('Login failed:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Register user
-   */
-  async register(email: string, password: string): Promise<boolean> {
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-      
-      const data = await response.json();
-      
-      // Same as login
-      this.state = {
-        isAuthenticated: true,
-        user: data.user,
-        token: data.access_token
-      };
-      
-      localStorage.setItem('auth_token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    // Listen for auth changes
+    this.supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event)
+      this.currentSession = session
+      this.currentUser = session?.user || null
       
       window.dispatchEvent(new CustomEvent('auth-state-changed', {
-        detail: { isAuthenticated: true, user: data.user }
-      }));
+        detail: { user: this.currentUser, session }
+      }))
+    })
+  }
+  
+  /**
+   * Load session from localStorage
+   */
+  private async loadSession() {
+    const { data: { session } } = await this.supabase.auth.getSession()
+    this.currentSession = session
+    this.currentUser = session?.user || null
+  }
+  
+  /**
+   * Sign up with email/password
+   */
+  async signUp(email: string, password: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase.auth.signUp({
+        email,
+        password
+      })
       
-      return true;
+      if (error) throw error
+      
+      this.currentUser = data.user
+      this.currentSession = data.session
+      
+      return true
     } catch (error) {
-      console.error('Registration failed:', error);
-      return false;
+      console.error('Sign up failed:', error)
+      return false
     }
   }
   
   /**
-   * Logout
+   * Sign in with email/password
    */
-  logout(): void {
-    this.state = this.getEmptyState();
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
-    
-    window.dispatchEvent(new CustomEvent('auth-state-changed', {
-      detail: { isAuthenticated: false, user: null }
-    }));
+  async signIn(email: string, password: string): Promise<boolean> {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      
+      if (error) throw error
+      
+      this.currentUser = data.user
+      this.currentSession = data.session
+      
+      return true
+    } catch (error) {
+      console.error('Sign in failed:', error)
+      return false
+    }
+  }
+  
+  /**
+   * Sign in with Google OAuth
+   */
+  async signInWithGoogle(): Promise<void> {
+    await this.supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + '/studio.html'
+      }
+    })
+  }
+  
+  /**
+   * Sign out
+   */
+  async signOut(): Promise<void> {
+    await this.supabase.auth.signOut()
+    this.currentUser = null
+    this.currentSession = null
+  }
+
+    /**
+   * Alias for signOut (backwards compatibility)
+   */
+  async logout(): Promise<void> {
+    await this.signOut()
   }
   
   /**
    * Get current user
    */
   getCurrentUser(): User | null {
-    return this.state.user;
+    return this.currentUser
   }
   
   /**
    * Get current user ID
    */
   getCurrentUserId(): string | null {
-    return this.state.user?.id || null;
+    return this.currentUser?.id || null
   }
   
   /**
-   * Get auth token
+   * Get access token
    */
   getToken(): string | null {
-    return this.state.token;
+    return this.currentSession?.access_token || null
   }
   
   /**
    * Is authenticated?
    */
   isAuthenticated(): boolean {
-    return this.state.isAuthenticated;
+    return !!this.currentUser && !!this.currentSession
+  }
+  
+  /**
+   * Get Supabase client (for direct use)
+   */
+  getSupabase(): SupabaseClient {
+    return this.supabase
   }
 }
 
 // Singleton instance
-export const authManager = new AuthManager();
+export const authManager = new AuthManager()

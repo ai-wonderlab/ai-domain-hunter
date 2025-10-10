@@ -106,47 +106,38 @@
     
     // Toggle between login/signup
     toggleLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      isLogin = !isLogin;
-      
-      if (isLogin) {
-        title.textContent = 'Login';
-        submitBtn.textContent = 'Login';
-        toggleText.textContent = "Don't have an account?";
-        toggleLink.textContent = 'Sign up';
-      } else {
-        title.textContent = 'Sign Up';
-        submitBtn.textContent = 'Create Account';
-        toggleText.textContent = 'Already have an account?';
-        toggleLink.textContent = 'Login';
-      }
-      
-      errorMsg.style.display = 'none';
+        e.preventDefault();
+        isLogin = !isLogin;
+        
+        title.textContent = isLogin ? 'Login' : 'Sign Up';
+        submitBtn.textContent = isLogin ? 'Login' : 'Create Account';
+        toggleText.textContent = isLogin ? "Don't have an account?" : 'Already have an account?';
+        toggleLink.textContent = isLogin ? 'Sign up' : 'Login';
+        errorMsg.style.display = 'none';
     });
     
     // Handle form submit
     form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const email = emailInput.value;
-      const password = passwordInput.value;
-      
-      errorMsg.style.display = 'none';
-      submitBtn.textContent = 'Loading...';
-      submitBtn.disabled = true;
-      
-      let success;
-      if (isLogin) {
-        success = await authManager.login(email, password);
-      } else {
-        success = await authManager.register(email, password);
-      }
-      
-      if (success) {
-        console.log('✅ Login successful, redirecting to studio...');
+        e.preventDefault();
+        
+        const email = emailInput.value;
+        const password = passwordInput.value;
+        
+        errorMsg.style.display = 'none';
+        submitBtn.textContent = 'Loading...';
+        submitBtn.disabled = true;
+        
+        let success;
+        if (isLogin) {
+        success = await authManager.signIn(email, password);  // ✅ FIXED
+        } else {
+        success = await authManager.signUp(email, password);  // ✅ FIXED
+        }
+        
+        if (success) {
         window.location.href = '/studio.html';
         } else {
-        errorMsg.textContent = isLogin ? 'Login failed' : 'Registration failed';
+        errorMsg.textContent = isLogin ? 'Invalid email or password' : 'Registration failed';
         errorMsg.style.display = 'block';
         submitBtn.textContent = isLogin ? 'Login' : 'Create Account';
         submitBtn.disabled = false;
@@ -155,8 +146,8 @@
     
     // Check if already logged in
     if (authManager.isAuthenticated()) {
-      window.location.href = '/studio.html';
+        window.location.href = '/studio.html';
     }
-  </script>
+    </script>
 </body>
 </html>

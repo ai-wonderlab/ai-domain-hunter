@@ -342,7 +342,7 @@ class StudioApp {
     const userEmailEl = document.getElementById('user-email');
     if (userEmailEl && authManager.isAuthenticated()) {
       const user = authManager.getCurrentUser();
-      if (user) {
+      if (user?.email) {
         userEmailEl.textContent = user.email;
       }
     }
